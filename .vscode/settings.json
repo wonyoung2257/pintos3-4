@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "*.inc": "c",
+        "thread.h": "c"
     }
 }

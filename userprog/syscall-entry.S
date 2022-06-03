@@ -10,7 +10,10 @@ syscall_entry:
 	movabs $tss, %r12
 	movq (%r12), %r12
 	movq 4(%r12), %rsp         /* Read ring0 rsp from the tss */
+
 	/* Now we are in the kernel stack */
+	/* 여기서부터 유저 프로세스의 intr_frame 커널 스택에 순서대로 push한다. */
+
 	push $(SEL_UDSEG)      /* if->ss */
 	push %rbx              /* if->rsp */
 	push %r11              /* if->eflags */
@@ -36,7 +39,8 @@ syscall_entry:
 	push %r13
 	push %r14
 	push %r15
-	movq %rsp, %rdi
+	movq %rsp, %rdi			/* 이제 rdi는 rsp가 가리키는 주소를 가리킨다. */
+							/* 즉, 앞으로 Call 할 함수의 첫 번째 인자가 스택에 쌓여있는 데이터(intr_frame)의 시작 주소를 가리킨다. */
 
 check_intr:
 	btsq $9, %r11          /* Check whether we recover the interrupt */
@@ -44,7 +48,7 @@ check_intr:
 	sti                    /* restore interrupt */
 no_sti:
 	movabs $syscall_handler, %r12
-	call *%r12
+	call *%r12 							// <------- !! syscall_handler 호출 !! 
 	popq %r15
 	popq %r14
 	popq %r13

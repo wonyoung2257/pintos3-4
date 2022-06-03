@@ -3,8 +3,7 @@
 #include "../syscall-nr.h"
 
 __attribute__((always_inline))
-static __inline int64_t syscall (uint64_t num_, uint64_t a1_, uint64_t a2_,
-		uint64_t a3_, uint64_t a4_, uint64_t a5_, uint64_t a6_) {
+static __inline int64_t syscall (uint64_t num_, uint64_t a1_, uint64_t a2_, uint64_t a3_, uint64_t a4_, uint64_t a5_, uint64_t a6_) {
 	int64_t ret;
 	register uint64_t *num asm ("rax") = (uint64_t *) num_;
 	register uint64_t *a1 asm ("rdi") = (uint64_t *) a1_;
@@ -22,7 +21,7 @@ static __inline int64_t syscall (uint64_t num_, uint64_t a1_, uint64_t a2_,
 			"mov %5, %%r10\n"
 			"mov %6, %%r8\n"
 			"mov %7, %%r9\n"
-			"syscall\n"
+			"syscall\n" // 저장 후 syscall instruction을 때린다.
 			: "=a" (ret)
 			: "g" (num), "g" (a1), "g" (a2), "g" (a3), "g" (a4), "g" (a5), "g" (a6)
 			: "cc", "memory");
