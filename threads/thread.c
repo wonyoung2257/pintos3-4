@@ -208,6 +208,7 @@ tid_t thread_create(const char *name, int priority,
 	ASSERT(function != NULL);
 
 	/* Allocate thread. */
+	// 페이지 할당(스레드를 위한 할당)
 	t = palloc_get_page(PAL_ZERO);
 	if (t == NULL)
 		return TID_ERROR;
@@ -217,10 +218,11 @@ tid_t thread_create(const char *name, int priority,
 	struct thread *parent = thread_current();
 	list_push_back(&parent->child_list, &t->child_elem);
 
+	// 페이지 할당(file descriptor table을 위한 할당)
 	t->fd_table = palloc_get_multiple(PAL_ZERO, FDT_PAGES);
 	if (t->fd_table == NULL)
 		return TID_ERROR;
-	tid = t->tid = allocate_tid();
+	tid = t->tid = allocate_tid(); // <- 여기서 tid ++ 해줌
 
 	t->fd_idx = 2; // 0, 1 은 이미 STDIN, STDOUT이 할당되어 있음, 항상 top을 가리킴
 	t->fd_table[0] = 1; /* dummy value for STDIN */
@@ -229,17 +231,17 @@ tid_t thread_create(const char *name, int priority,
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
-	t->tf.rip = (uintptr_t)kernel_thread;
+	t->tf.rip = (uintptr_t)kernel_thread; // 자식 스레드가 CPU를 점유하게 되면 제일 먼저 실행되는 프로시저(kernel_thread)
 	t->tf.R.rdi = (uint64_t)function;
 	t->tf.R.rsi = (uint64_t)aux;
-	t->tf.ds = SEL_KDSEG;
+	t->tf.ds = SEL_KDSEG; // 의미(?)
 	t->tf.es = SEL_KDSEG;
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
 	/* Add to run queue. */
-	thread_unblock(t);
+	thread_unblock(t); // 지금 만든 자식 스레드 ready_list 에 넣음
 	if (preempt_by_priority())
 	{
 		thread_yield();
@@ -448,7 +450,7 @@ kernel_thread(thread_func *function, void *aux)
 	ASSERT(function != NULL);
 
 	intr_enable(); /* The scheduler runs with interrupts off. */
-	function(aux); /* Execute the thread function. */
+	function(aux); /* Execute the thread function. */ /* fork() -> __do_fork() 여기서 실행*/
 	thread_exit(); /* If function() returns, kill the thread. */
 }
 
@@ -597,8 +599,8 @@ thread_launch(struct thread *th)
 		"mov %%rbx, 16(%%rax)\n" // eflags
 		"mov %%rsp, 24(%%rax)\n" // rsp
 		"movw %%ss, 32(%%rax)\n"
-		"mov %%rcx, %%rdi\n"
-		"call do_iret\n"
+		"mov %%rcx, %%rdi\n" // do_iret에 인자로 넘겨줄 인터럽트 프레임은 어디~? -> 아마 여기 일듯 (위에 rcx에 tf(다음 스레드 인터럽트 프레임) 넣어줌)
+		"call do_iret\n" // do_iret 프로시저(함수) 호출 : 해당 스레드의 인터럽트 프레임에 있는 명령어 주소들 레지스터에 넣음
 		"out_iret:\n"
 		:
 		: "g"(tf_cur), "g"(tf)
@@ -609,15 +611,13 @@ thread_launch(struct thread *th)
  * This function modify current thread's status to status and then
  * finds another thread to run and switches to it.
  * It's not safe to call printf() in the schedule(). */
-static void
-do_schedule(int status)
+static void do_schedule(int status)
 {
 	ASSERT(intr_get_level() == INTR_OFF);
 	ASSERT(thread_current()->status == THREAD_RUNNING);
 	while (!list_empty(&destruction_req))
 	{
-		struct thread *victim =
-			list_entry(list_pop_front(&destruction_req), struct thread, elem);
+		struct thread *victim = list_entry(list_pop_front(&destruction_req), struct thread, elem);
 		palloc_free_page(victim);
 	}
 	thread_current()->status = status;

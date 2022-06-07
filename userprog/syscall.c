@@ -216,15 +216,12 @@ int exec(const char *cmd_line)
 	int size = strlen(cmd_line);
 	cmd_line_cp = palloc_get_page(0);
 	if (cmd_line_cp == NULL)
-	{
 		exit(-1);
-	}
+		
 	strlcpy(cmd_line_cp, cmd_line, size + 1);
 
 	if (process_exec(cmd_line_cp) == -1)
-	{
 		return -1;
-	}
 
 	NOT_REACHED();
 	return 0;

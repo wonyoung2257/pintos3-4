@@ -254,7 +254,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		int chunk_size = size < min_left ? size : min_left;
 		if (chunk_size <= 0)
 			break;
-
+		
 		if (sector_ofs == 0 && chunk_size == DISK_SECTOR_SIZE) {
 			/* Write full sector directly to disk. */
 			disk_write (filesys_disk, sector_idx, buffer + bytes_written); 

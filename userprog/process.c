@@ -92,8 +92,8 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 		return TID_ERROR;
 
 	struct thread *child = get_child_by_tid(tid); // 해당 tid를 가진 스레드를 현재 실행중인 스레드의 child_list에서 찾음
-	sema_down(&child->fork_sema); // 자식 스레드의 로드가 완료되었을 때
-								  // sema_up은 언제....
+	sema_down(&child->fork_sema); // 자식 스레드의 로드가 완료되었을 때(__do_fork 함수 완료)까지 대기
+								  // sema_up은 언제.... -> __do_fork
 	if (child->exit_status == -1)
 	{
 		return TID_ERROR;
@@ -301,14 +301,13 @@ int process_wait(tid_t child_tid UNUSED)
 	struct thread *child = get_child_by_tid(child_tid);
 
 	if (child == NULL)
-	{
 		return -1;
-	}
 
-	sema_down(&child->wait_sema);
+	sema_down(&child->wait_sema); // child 스레드가 process_exit() 해서 sema_up 할 때까지 기다림(Block 상태 진입)
+
 	int exit_status = child->exit_status;
-	list_remove(&child->child_elem);
-	sema_up(&child->free_sema);
+	list_remove(&child->child_elem); // 부모의 child_list에서 child 스레드 삭제 
+	sema_up(&child->free_sema); // 잠들었던 자식 프로세스 깨우기(?)
 	
 	return exit_status;
 }
@@ -331,10 +330,10 @@ void process_exit(void)
 	palloc_free_multiple(curr->fd_table, FDT_PAGES); // fd_table 반환
 
 
-	process_cleanup();
+	process_cleanup(); // 페이지 테이블 할당
 
 	sema_up(&curr->wait_sema);
-	sema_down(&curr->free_sema);
+	sema_down(&curr->free_sema); // process_wait에서 free_sema 관련해서 sema_up()
 }
 
 /* Free the current process's resources. */
