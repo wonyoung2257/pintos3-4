@@ -6,6 +6,8 @@
         "mmu.h": "c",
         "file.h": "c",
         "syscall.h": "c",
-        "process.h": "c"
+        "process.h": "c",
+        "hash.h": "c",
+        "malloc.h": "c"
     }
 }
