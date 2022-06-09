@@ -5,7 +5,9 @@
 #include "vm/inspect.h"
 #include "lib/kernel/hash.h"
 // project 3
-#include "filesys/page_cache.c"
+// #include "filesys/page_cache.c"
+#include "vm/anon.c"
+#include "vm/file.c"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -54,7 +56,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	// 수상
 	struct page *page = palloc_get_page(PAL_USER);
-	
+
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page(spt, upage) == NULL)
 	{
@@ -62,13 +64,18 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		// 수상
-		if (type == VM_ANON) {
+		if (type == VM_ANON)
+		{
 			uninit_new(page, NULL, init, type, aux, anon_initializer);
-		} else if (type == VM_FILE) {
-			uninit_new(page, NULL, init, type, aux, file_backed_initializer);
-		} else if (type == VM_PAGE_CACHE) {
-			uninit_new(page, NULL, init, type, aux, page_cache_initializer);
 		}
+		else if (type == VM_FILE)
+		{
+			uninit_new(page, NULL, init, type, aux, file_backed_initializer);
+		}
+		// else if (type == VM_PAGE_CACHE)
+		// {
+		// 	uninit_new(page, NULL, init, type, aux, page_cache_initializer);
+		// }
 
 		/* TODO: Insert the page into the spt. */
 		return spt_insert_page(spt, page);
@@ -164,8 +171,12 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 												 bool user UNUSED, bool write UNUSED, bool not_present UNUSED)
 {
 	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
-	struct page *page = NULL;
+	struct page *page = spt_find_page(spt, addr);
 	/* TODO: Validate the fault */
+	if (page == NULL)
+	{
+		return false;
+	}
 	/* TODO: Your code goes here */
 
 	return vm_do_claim_page(page);

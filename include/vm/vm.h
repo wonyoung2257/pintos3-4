@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "threads/palloc.h"
 #include "lib/kernel/hash.h"
+#include "userprog/process.h"
 
 enum vm_type
 {
@@ -50,8 +51,8 @@ struct page
 
 	/* Your implementation */
 	// project 3
-	struct hash_elem hash_elem; /* Hash table element */
-
+	struct hash_elem hash_elem;				 /* Hash table element */
+	struct file_information *file_inf; // 수상
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
 	union
