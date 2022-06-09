@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "threads/palloc.h"
 #include "lib/kernel/hash.h"
+// #include "filesys/off_t.h"
 
 enum vm_type
 {
@@ -42,6 +43,14 @@ struct thread;
  * This is kind of "parent class", which has four "child class"es, which are
  * uninit_page, file_page, anon_page, and page cache (project4).
  * DO NOT REMOVE/MODIFY PREDEFINED MEMBER OF THIS STRUCTURE. */
+//  project 3 추가
+struct file_information
+{
+	struct file *file;
+	off_t offset;
+	uint32_t read_bytes;
+};
+
 struct page
 {
 	const struct page_operations *operations;
@@ -50,8 +59,8 @@ struct page
 
 	/* Your implementation */
 	// project 3
-	struct hash_elem hash_elem; /* Hash table element */
-
+	struct hash_elem hash_elem;				 /* Hash table element */
+	struct file_information *file_inf; // 수상
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
 	union

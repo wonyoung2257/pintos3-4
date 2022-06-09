@@ -18,6 +18,7 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -92,8 +93,8 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 		return TID_ERROR;
 
 	struct thread *child = get_child_by_tid(tid); // 해당 tid를 가진 스레드를 현재 실행중인 스레드의 child_list에서 찾음
-	sema_down(&child->fork_sema); // 자식 스레드의 로드가 완료되었을 때(__do_fork 함수 완료)까지 대기
-								  // sema_up은 언제.... -> __do_fork
+	sema_down(&child->fork_sema);									// 자식 스레드의 로드가 완료되었을 때(__do_fork 함수 완료)까지 대기
+																								// sema_up은 언제.... -> __do_fork
 	if (child->exit_status == -1)
 	{
 		return TID_ERROR;
@@ -111,7 +112,7 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 /**
  *   - Kernel Page의 경우 페이지 테이블 복사항 필요 없다 => Kernel의 경우 모든 프로세스가 동일한 주소공간 공유하기 때문
  *   - 그래서 PAL_USER일 때만 복사
-*/
+ */
 static bool duplicate_pte(uint64_t *pte, void *va, void *aux)
 {
 	struct thread *current = thread_current();
@@ -125,7 +126,7 @@ static bool duplicate_pte(uint64_t *pte, void *va, void *aux)
 	if (is_kernel_vaddr(va))
 	{
 		return true; // return false ends pml4_for_each, which is undesirable - just return true to pass this kernel va
-					 // false - 뭐가 맞는거지...?
+								 // false - 뭐가 맞는거지...?
 	}
 
 	/* 2. Resolve VA from the parent's page map level 4. */
@@ -166,13 +167,13 @@ static bool duplicate_pte(uint64_t *pte, void *va, void *aux)
  *       this function. */
 /**
  * 부모의 실행 context를 복사하는 함수
-*/
+ */
 static void __do_fork(void *aux)
 {
 	struct intr_frame if_;
 	struct thread *parent = (struct thread *)aux;
 	struct thread *current = thread_current();
-	
+
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
 	/* -------- Project 2 ----------- */
 	struct intr_frame *parent_if = &parent->parent_if;
@@ -306,9 +307,9 @@ int process_wait(tid_t child_tid UNUSED)
 	sema_down(&child->wait_sema); // child 스레드가 process_exit() 해서 sema_up 할 때까지 기다림(Block 상태 진입)
 
 	int exit_status = child->exit_status;
-	list_remove(&child->child_elem); // 부모의 child_list에서 child 스레드 삭제 
-	sema_up(&child->free_sema); // 잠들었던 자식 프로세스 깨우기(?)
-	
+	list_remove(&child->child_elem); // 부모의 child_list에서 child 스레드 삭제
+	sema_up(&child->free_sema);			 // 잠들었던 자식 프로세스 깨우기(?)
+
 	return exit_status;
 }
 
@@ -326,9 +327,8 @@ void process_exit(void)
 	{
 		close(i);
 	}
-	file_close(curr->running); // running : File *, 현재 실행중인 파일을 닫고 fd 정리해줘야하는 것 아님?
+	file_close(curr->running);											 // running : File *, 현재 실행중인 파일을 닫고 fd 정리해줘야하는 것 아님?
 	palloc_free_multiple(curr->fd_table, FDT_PAGES); // fd_table 반환
-
 
 	process_cleanup(); // 페이지 테이블 할당
 
@@ -381,13 +381,13 @@ void process_activate(struct thread *next)
 /* ELF types.  See [ELF1] 1-2. */
 #define EI_NIDENT 16
 
-#define PT_NULL 0			/* Ignore. */
-#define PT_LOAD 1			/* Loadable segment. */
-#define PT_DYNAMIC 2		/* Dynamic linking info. */
-#define PT_INTERP 3			/* Name of dynamic loader. */
-#define PT_NOTE 4			/* Auxiliary info. */
-#define PT_SHLIB 5			/* Reserved. */
-#define PT_PHDR 6			/* Program header table. */
+#define PT_NULL 0						/* Ignore. */
+#define PT_LOAD 1						/* Loadable segment. */
+#define PT_DYNAMIC 2				/* Dynamic linking info. */
+#define PT_INTERP 3					/* Name of dynamic loader. */
+#define PT_NOTE 4						/* Auxiliary info. */
+#define PT_SHLIB 5					/* Reserved. */
+#define PT_PHDR 6						/* Program header table. */
 #define PT_STACK 0x6474e551 /* Stack segment. */
 
 #define PF_X 1 /* Executable. */
@@ -433,8 +433,8 @@ struct ELF64_PHDR
 static bool setup_stack(struct intr_frame *if_);
 static bool validate_segment(const struct Phdr *, struct file *);
 static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
-						 uint32_t read_bytes, uint32_t zero_bytes,
-						 bool writable);
+												 uint32_t read_bytes, uint32_t zero_bytes,
+												 bool writable);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
  * Stores the executable's entry point into *RIP
@@ -485,8 +485,7 @@ load(const char *file_name, struct intr_frame *if_)
 	/* Read and verify executable header. */
 	/* Executable File 가져오면서 Code(text) & Data segment 값들 옮겨옴(초기화)*/
 	// amd64
-	if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr || memcmp(ehdr.e_ident, "\177ELF\2\1\1", 7) || ehdr.e_type != 2 || ehdr.e_machine != 0x3E 
-		|| ehdr.e_version != 1 || ehdr.e_phentsize != sizeof(struct Phdr) || ehdr.e_phnum > 1024)
+	if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr || memcmp(ehdr.e_ident, "\177ELF\2\1\1", 7) || ehdr.e_type != 2 || ehdr.e_machine != 0x3E || ehdr.e_version != 1 || ehdr.e_phentsize != sizeof(struct Phdr) || ehdr.e_phnum > 1024)
 	{
 		printf("load: %s: error loading executable\n", file_name);
 		goto done;
@@ -529,19 +528,19 @@ load(const char *file_name, struct intr_frame *if_)
 				if (phdr.p_filesz > 0)
 				{
 					/* Normal segment.
-						 * Read initial part from disk and zero the rest. */
+					 * Read initial part from disk and zero the rest. */
 					read_bytes = page_offset + phdr.p_filesz;
 					zero_bytes = (ROUND_UP(page_offset + phdr.p_memsz, PGSIZE) - read_bytes);
 				}
 				else
 				{
 					/* Entirely zero.
-						 * Don't read anything from disk. */
+					 * Don't read anything from disk. */
 					read_bytes = 0;
 					zero_bytes = ROUND_UP(page_offset + phdr.p_memsz, PGSIZE);
 				}
 				if (!load_segment(file, file_page, (void *)mem_page,
-								  read_bytes, zero_bytes, writable))
+													read_bytes, zero_bytes, writable))
 					goto done;
 			}
 			else
@@ -636,22 +635,22 @@ validate_segment(const struct Phdr *phdr, struct file *file)
 		return false;
 
 	/* The virtual memory region must both start and end within the
-	   user address space range. */
+		 user address space range. */
 	if (!is_user_vaddr((void *)phdr->p_vaddr))
 		return false;
 	if (!is_user_vaddr((void *)(phdr->p_vaddr + phdr->p_memsz)))
 		return false;
 
 	/* The region cannot "wrap around" across the kernel virtual
-	   address space. */
+		 address space. */
 	if (phdr->p_vaddr + phdr->p_memsz < phdr->p_vaddr)
 		return false;
 
 	/* Disallow mapping page 0.
-	   Not only is it a bad idea to map page 0, but if we allowed
-	   it then user code that passed a null pointer to system calls
-	   could quite likely panic the kernel by way of null pointer
-	   assertions in memcpy(), etc. */
+		 Not only is it a bad idea to map page 0, but if we allowed
+		 it then user code that passed a null pointer to system calls
+		 could quite likely panic the kernel by way of null pointer
+		 assertions in memcpy(), etc. */
 	if (phdr->p_vaddr < PGSIZE)
 		return false;
 
@@ -683,7 +682,7 @@ static bool install_page(void *upage, void *kpage, bool writable);
  * or disk read error occurs. */
 static bool
 load_segment(struct file *file, off_t ofs, uint8_t *upage,
-			 uint32_t read_bytes, uint32_t zero_bytes, bool writable)
+						 uint32_t read_bytes, uint32_t zero_bytes, bool writable)
 {
 	ASSERT((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT(pg_ofs(upage) == 0);
@@ -773,7 +772,10 @@ static bool
 lazy_load_segment(struct page *page, void *aux)
 {
 	/* TODO: Load the segment from the file */
+	// aux에 file 넘기기 - 가설 -> aux로부터 segment load
+	page->file_inf = aux;
 	/* TODO: This called when the first page fault occurs on address VA. */
+	// page table - frame table connect
 	/* TODO: VA is available when calling this function. */
 }
 
@@ -793,7 +795,7 @@ lazy_load_segment(struct page *page, void *aux)
  * or disk read error occurs. */
 static bool
 load_segment(struct file *file, off_t ofs, uint8_t *upage,
-			 uint32_t read_bytes, uint32_t zero_bytes, bool writable)
+						 uint32_t read_bytes, uint32_t zero_bytes, bool writable)
 {
 	ASSERT((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT(pg_ofs(upage) == 0);
@@ -808,9 +810,14 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
+		struct file_information file_inf;
+		file_inf.file = file;
+		file_inf.offset = ofs;
+		file_inf.read_bytes = read_bytes;
+
+		void *aux = &file_inf; // aux에 file 넘기기 - 가설
 		if (!vm_alloc_page_with_initializer(VM_ANON, upage,
-											writable, lazy_load_segment, aux))
+																				writable, lazy_load_segment, aux))
 			return false;
 
 		/* Advance. */
@@ -825,14 +832,27 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack(struct intr_frame *if_)
 {
-	bool success = false;
-	void *stack_bottom = (void *)(((uint8_t *)USER_STACK) - PGSIZE);
+	// uint8_t *kpage;
+	// bool success = false;
 
-	/* TODO: Map the stack on stack_bottom and claim the page immediately.
-	 * TODO: If success, set the rsp accordingly.
-	 * TODO: You should mark the page is stack. */
-	/* TODO: Your code goes here */
+	// kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+	// if (kpage != NULL)
+	// {
+	// 	success = install_page(((uint8_t *)USER_STACK) - PGSIZE, kpage, true);
+	// 	if (success)
+	// 		if_->rsp = USER_STACK;
+	// 	else
+	// 		palloc_free_page(kpage);
+	// }
+	// return success;
+	// bool success = false;
+	// void *stack_bottom = (void *)(((uint8_t *)USER_STACK) - PGSIZE);
 
-	return success;
+	// /* TODO: Map the stack on stack_bottom and claim the page immediately.
+	//  * TODO: If success, set the rsp accordingly.
+	//  * TODO: You should mark the page is stack. */
+	// /* TODO: Your code goes here */
+
+	// return success;
 }
 #endif /* VM */
