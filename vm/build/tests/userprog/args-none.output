@@ -4,28 +4,68 @@ Kernel command line: -q -f put args-none run args-none
 Pintos booting with: 
 	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
 	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
-123Calibrating timer...  94,924,800 loops/s.
+Calibrating timer...  93,900,800 loops/s.
 hd0:0: detected 321 sector (160 kB) disk, model "QEMU HARDDISK", serial "QM00001"
 hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
 hd1:0: detected 102 sector (51 kB) disk, model "QEMU HARDDISK", serial "QM00003"
 hd1:1: detected 8,064 sector (3 MB) disk, model "QEMU HARDDISK", serial "QM00004"
 Formatting file system...done.
-456Boot complete.
+Boot complete.
 Putting 'args-none' into the file system...
 Executing 'args-none':
 1111
 33333
+2222233333
 5555
-Page fault at 0x18: not present error reading page in kernel context.
-args-none: exit(-1)
-Execution of 'args-none' complete.
-Timer: 67 ticks
-Thread: 30 idle ticks, 35 kernel ticks, 3 user ticks
+6666
+old: 0
+1111
+33333
+2222233333
+5555
+6666
+old: 0x8004a21018
+1111
+33333
+2222233333
+5555
+6666
+old: 0x8004a21018
+1111
+33333
+2222233333
+5555
+6666
+old: 0x8004a21018
+1111
+33333
+2222233333
+5555
+6666
+old: 0x8004a21018
+1111
+33333
+2222233333
+5555
+6666
+old: 0x8004a21018
+1111
+33333
+2222233333
+5555
+6666
+old: 0x8004a21018
+Kernel PANIC at ../../userprog/process.c:78 in initd(): Fail to launch initd
+
+Call stack: 0x80042180ad 0x800421b785 0x8004207454.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Timer: 86 ticks
+Thread: 30 idle ticks, 37 kernel ticks, 19 user ticks
 hd0:0: 0 reads, 0 writes
-hd0:1: 39 reads, 232 writes
+hd0:1: 41 reads, 232 writes
 hd1:0: 102 reads, 0 writes
 hd1:1: 0 reads, 0 writes
-Console: 1005 characters output
-Keyboard: 0 keys pressed
-Exception: 1 page faults
-Powering off...
+Console: 1482 characters output
+Key

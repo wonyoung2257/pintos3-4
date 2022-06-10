@@ -151,7 +151,6 @@ vm_get_frame(void)
 {
 	struct frame *frame = palloc_get_page(PAL_USER);
 	/* TODO: Fill this function. */
-
 	// 나중에 swap out 처리를 해줘야한다.
 	if (frame == NULL)
 	{
@@ -203,6 +202,7 @@ bool vm_claim_page(void *va UNUSED)
 {
 	struct page *page = spt_find_page(NULL, va);
 	/* TODO: Fill this function */
+	printf("vm_claim_page\n");
 
 	return vm_do_claim_page(page);
 }
@@ -212,13 +212,13 @@ static bool
 vm_do_claim_page(struct page *page)
 {
 	struct frame *frame = vm_get_frame();
-
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
-
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+
 	spt_insert_page(&thread_current()->spt, page); // 수상
+
 	return swap_in(page, frame->kva);
 }
 

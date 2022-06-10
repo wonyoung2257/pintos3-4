@@ -548,11 +548,9 @@ load(const char *file_name, struct intr_frame *if_)
 			break;
 		}
 	}
-
 	/* Set up stack. */
 	if (!setup_stack(if_))
 		goto done;
-
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
 
@@ -730,6 +728,7 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack(struct intr_frame *if_)
 {
+
 	uint8_t *kpage;
 	bool success = false;
 
@@ -754,6 +753,7 @@ setup_stack(struct intr_frame *if_)
  * with palloc_get_page().
  * Returns true on success, false if UPAGE is already mapped or
  * if memory allocation fails. */
+// 물리메모리에 적재가 완료되면 가상주소와 물리주소를 페이지테이블로 맵핑
 static bool
 install_page(void *upage, void *kpage, bool writable)
 {
@@ -763,7 +763,9 @@ install_page(void *upage, void *kpage, bool writable)
 	 * address, then map our page there. */
 	return (pml4_get_page(t->pml4, upage) == NULL && pml4_set_page(t->pml4, upage, kpage, writable));
 }
-#else
+// 주석 해제
+// #else
+
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
@@ -833,11 +835,36 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack(struct intr_frame *if_)
 {
-
 	// /* TODO: Map the stack on stack_bottom and claim the page immediately.
 	//  * TODO: If success, set the rsp accordingly.
 	//  * TODO: You should mark the page is stack. */
 	// /* TODO: Your code goes here */
+	printf("setup_stack\n");
+	bool success = false;
+	void *stack_bottom = (void *)(((uint8_t *)USER_STACK) - PGSIZE);
+
+	////////////////////////////////
+	// bool success = false;
+
+	// kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+	// printf("11111\n");
+	struct page *page = palloc_get_page(PAL_USER);
+	page->va = stack_bottom;
+	spt_insert_page(&thread_current()->spt, page);
+
+	if (page != NULL)
+	{
+		// success = install_page(((uint8_t *)USER_STACK) - PGSIZE, kpage, true);
+		// vm_alloc_page_with_initializer();
+		success = vm_claim_page(stack_bottom);
+		if (success)
+		{
+			if_->rsp = USER_STACK;
+		}
+		else
+			palloc_free_page(page);
+	}
+	return success;
 
 	// return success;
 }

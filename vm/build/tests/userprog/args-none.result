@@ -1,22 +1,7 @@
 FAIL
-Test output failed to match any acceptable form.
-
-Acceptable output:
-  (args) begin
-  (args) argc = 1
-  (args) argv[0] = 'args-none'
-  (args) argv[1] = null
-  (args) end
-  args-none: exit(0)
-Differences in `diff -u' format:
-- (args) begin
-- (args) argc = 1
-- (args) argv[0] = 'args-none'
-- (args) argv[1] = null
-- (args) end
-- args-none: exit(0)
-+ 1111
-+ 33333
-+ 5555
-+ Page fault at 0x18: not present error reading page in kernel context.
-+ args-none: exit(-1)
+Kernel panic in run: PANIC at ../../userprog/process.c:78 in initd(): Fail to launch initd
+Call stack: 0x80042180ad 0x800421b785 0x8004207454
+Translation of call stack:
+0x00000080042180ad: debug_panic (lib/kernel/debug.c:32)
+0x000000800421b785: initd (userprog/process.c:79)
+0x0000008004207454: kernel_thread (threads/thread.c:454)
