@@ -1,0 +1,18 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (read-zero) begin
+  (read-zero) open "sample.txt"
+  (read-zero) end
+  read-zero: exit(0)
+Differences in `diff -u' format:
+- (read-zero) begin
+- (read-zero) open "sample.txt"
+- (read-zero) end
+- read-zero: exit(0)
++ 1111
++ 33333
++ 5555
++ Page fault at 0x18: not present error reading page in kernel context.
++ read-zero: exit(-1)

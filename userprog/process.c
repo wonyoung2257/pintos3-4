@@ -773,6 +773,7 @@ lazy_load_segment(struct page *page, void *aux)
 {
 	/* TODO: Load the segment from the file */
 	// aux에 file 넘기기 - 가설 -> aux로부터 segment load
+	printf("2222\n");
 	page->file_inf = aux;
 	/* TODO: This called when the first page fault occurs on address VA. */
 	// page table - frame table connect
@@ -814,7 +815,7 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		file_inf.file = file;
 		file_inf.offset = ofs;
 		file_inf.read_bytes = read_bytes;
-
+		printf("1111\n");
 		void *aux = &file_inf; // aux에 file 넘기기 - 가설
 		if (!vm_alloc_page_with_initializer(VM_ANON, upage,
 																				writable, lazy_load_segment, aux))
@@ -832,21 +833,6 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack(struct intr_frame *if_)
 {
-	// uint8_t *kpage;
-	// bool success = false;
-
-	// kpage = palloc_get_page(PAL_USER | PAL_ZERO);
-	// if (kpage != NULL)
-	// {
-	// 	success = install_page(((uint8_t *)USER_STACK) - PGSIZE, kpage, true);
-	// 	if (success)
-	// 		if_->rsp = USER_STACK;
-	// 	else
-	// 		palloc_free_page(kpage);
-	// }
-	// return success;
-	// bool success = false;
-	// void *stack_bottom = (void *)(((uint8_t *)USER_STACK) - PGSIZE);
 
 	// /* TODO: Map the stack on stack_bottom and claim the page immediately.
 	//  * TODO: If success, set the rsp accordingly.

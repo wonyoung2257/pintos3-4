@@ -104,7 +104,8 @@ struct page_operations
  * All designs up to you for this. */
 struct supplemental_page_table
 {
-	struct hash *hash;
+	// project 3 수정 *hash -> hash
+	struct hash hash;
 };
 
 #include "threads/thread.h"

@@ -1,0 +1,13 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (create-bad-ptr) begin
+  create-bad-ptr: exit(-1)
+Differences in `diff -u' format:
+- (create-bad-ptr) begin
++ 1111
++ 33333
++ 5555
++ Page fault at 0x18: not present error reading page in kernel context.
+  create-bad-ptr: exit(-1)

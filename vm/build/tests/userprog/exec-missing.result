@@ -1,0 +1,27 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (exec-missing) begin
+  (exec-missing) exec("no-such-file"): -1
+  exec-missing: exit(-1)
+Differences in `diff -u' format:
+- (exec-missing) begin
+- (exec-missing) exec("no-such-file"): -1
++ 1111
++ 33333
++ 5555
++ Page fault at 0x18: not present error reading page in kernel context.
+  exec-missing: exit(-1)
+Acceptable output:
+  (exec-missing) begin
+  load: no-such-file: open failed
+  exec-missing: exit(-1)
+Differences in `diff -u' format:
+- (exec-missing) begin
+- load: no-such-file: open failed
++ 1111
++ 33333
++ 5555
++ Page fault at 0x18: not present error reading page in kernel context.
+  exec-missing: exit(-1)

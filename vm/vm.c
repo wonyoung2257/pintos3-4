@@ -55,15 +55,17 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	// 수상
-	struct page *page = palloc_get_page(PAL_USER);
-
+	// struct page *page = palloc_get_page(PAL_USER);
+	printf("33333\n");
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page(spt, upage) == NULL)
 	{
+		printf("2222233333\n");
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		// 수상
+		struct page *page = palloc_get_page(PAL_USER);
 		if (type == VM_ANON)
 		{
 			uninit_new(page, NULL, init, type, aux, anon_initializer);
@@ -101,11 +103,15 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 {
 	// 수상
 	/* TODO: Fill this function. */
-	if (hash_insert(spt->hash, &page->hash_elem))
-	{
-		// 실패
-		return false;
-	}
+	// project3 수정
+	printf("6666\n");
+	hash_insert(&spt->hash, &page->hash_elem);
+	// if ()
+	// {
+	// 	// 실패
+	// 	printf("777\n");
+	// 	return false;
+	// }
 	return true;
 }
 
@@ -145,6 +151,8 @@ vm_get_frame(void)
 {
 	struct frame *frame = palloc_get_page(PAL_USER);
 	/* TODO: Fill this function. */
+
+	// 나중에 swap out 처리를 해줘야한다.
 	if (frame == NULL)
 	{
 		PANIC("todo");
@@ -173,11 +181,11 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
 	/* TODO: Validate the fault */
+	/* TODO: Your code goes here */
 	if (page == NULL)
 	{
 		return false;
 	}
-	/* TODO: Your code goes here */
 
 	return vm_do_claim_page(page);
 }
@@ -217,7 +225,7 @@ vm_do_claim_page(struct page *page)
 /* Initialize new supplemental page table */
 void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 {
-	hash_init(spt->hash, page_hash, page_less, NULL);
+	hash_init(&spt->hash, page_hash, page_less, NULL);
 }
 
 /* Copy supplemental page table from src to dst */

@@ -1,0 +1,15 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (bad-jump2) begin
+  bad-jump2: exit(-1)
+Differences in `diff -u' format:
+- (bad-jump2) begin
++ 1111
++ 33333
++ 5555
++ Page fault at 0x18: not present error reading page in kernel context.
+  bad-jump2: exit(-1)
+
+(User fault messages are excluded for matching purposes.)

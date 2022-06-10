@@ -1,48 +1,22 @@
 FAIL
-Kernel panic in run: PANIC at ../../threads/thread.c:311 in thread_current(): assertion `is_thread(t)' failed.
-Call stack: 0x80042180ad 0x8004207108 0x8004220de1 0x800421cbf0 0x8004208f7e 0x800420939c 0x800421a878 0x8004221084 0x8004220bfd 0x8004220e05 0x800421cbf0 0x8004208f7e 0x800420939c 0x800421a878 0x8004221084 0x8004220bfd 0x8004220e05 0x800421cbf0 0x8004208f7e 0x800420939c 0x800421a878 0x8004221084 0x8004220bfd 0x8004220e05 0x800421cbf0 0x8004208f7e 0x800420939c 0x800421a878 0x8004221084 0x8004220bfd 0x8004220e05 0x800421cbf0 0x8004208f7e 0x800420939c 0x800421a878 0x8004221084 0x8004220bfd 0x8004220e05 0x800421cbf0 0x8004208f7e 0x800420939c 0x8004220f66 0x800421b70b 0x8004207454
-Translation of call stack:
-0x00000080042180ad: debug_panic (lib/kernel/debug.c:32)
-0x0000008004207108: thread_current (threads/thread.c:312)
-0x0000008004220de1: vm_try_handle_fault (vm/vm.c:173)
-0x000000800421cbf0: page_fault (userprog/exception.c:145)
-0x0000008004208f7e: intr_handler (threads/interrupt.c:352)
-0x000000800420939c: intr_entry (threads/intr-stubs.o:?)
-0x000000800421a878: hash_find (lib/kernel/hash.c:131)
-0x0000008004221084: page_lookup (vm/vm.c:268)
-0x0000008004220bfd: spt_find_page (vm/vm.c:93)
-0x0000008004220e05: vm_try_handle_fault (vm/vm.c:174)
-0x000000800421cbf0: page_fault (userprog/exception.c:145)
-0x0000008004208f7e: intr_handler (threads/interrupt.c:352)
-0x000000800420939c: intr_entry (threads/intr-stubs.o:?)
-0x000000800421a878: hash_find (lib/kernel/hash.c:131)
-0x0000008004221084: page_lookup (vm/vm.c:268)
-0x0000008004220bfd: spt_find_page (vm/vm.c:93)
-0x0000008004220e05: vm_try_handle_fault (vm/vm.c:174)
-0x000000800421cbf0: page_fault (userprog/exception.c:145)
-0x0000008004208f7e: intr_handler (threads/interrupt.c:352)
-0x000000800420939c: intr_entry (threads/intr-stubs.o:?)
-0x000000800421a878: hash_find (lib/kernel/hash.c:131)
-0x0000008004221084: page_lookup (vm/vm.c:268)
-0x0000008004220bfd: spt_find_page (vm/vm.c:93)
-0x0000008004220e05: vm_try_handle_fault (vm/vm.c:174)
-0x000000800421cbf0: page_fault (userprog/exception.c:145)
-0x0000008004208f7e: intr_handler (threads/interrupt.c:352)
-0x000000800420939c: intr_entry (threads/intr-stubs.o:?)
-0x000000800421a878: hash_find (lib/kernel/hash.c:131)
-0x0000008004221084: page_lookup (vm/vm.c:268)
-0x0000008004220bfd: spt_find_page (vm/vm.c:93)
-0x0000008004220e05: vm_try_handle_fault (vm/vm.c:174)
-0x000000800421cbf0: page_fault (userprog/exception.c:145)
-0x0000008004208f7e: intr_handler (threads/interrupt.c:352)
-0x000000800420939c: intr_entry (threads/intr-stubs.o:?)
-0x000000800421a878: hash_find (lib/kernel/hash.c:131)
-0x0000008004221084: page_lookup (vm/vm.c:268)
-0x0000008004220bfd: spt_find_page (vm/vm.c:93)
-0x0000008004220e05: vm_try_handle_fault (vm/vm.c:174)
-0x000000800421cbf0: page_fault (userprog/exception.c:145)
-0x0000008004208f7e: intr_handler (threads/interrupt.c:352)
-0x000000800420939c: intr_entry (threads/intr-stubs.o:?)
-0x0000008004220f66: supplemental_page_table_init (vm/vm.c:221)
-0x000000800421b70b: initd (userprog/process.c:75)
-0x0000008004207454: kernel_thread (threads/thread.c:454)
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (args) begin
+  (args) argc = 1
+  (args) argv[0] = 'args-none'
+  (args) argv[1] = null
+  (args) end
+  args-none: exit(0)
+Differences in `diff -u' format:
+- (args) begin
+- (args) argc = 1
+- (args) argv[0] = 'args-none'
+- (args) argv[1] = null
+- (args) end
+- args-none: exit(0)
++ 1111
++ 33333
++ 5555
++ Page fault at 0x18: not present error reading page in kernel context.
++ args-none: exit(-1)
