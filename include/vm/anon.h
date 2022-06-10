@@ -5,6 +5,8 @@ struct page;
 enum vm_type;
 
 struct anon_page {
+    struct list_elem anon_elem;
+    // tick ?
 };
 
 void vm_anon_init (void);

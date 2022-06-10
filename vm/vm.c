@@ -119,8 +119,12 @@ vm_evict_frame (void) {
  * space.*/
 static struct frame *
 vm_get_frame (void) {
-	struct frame *frame = NULL;
+	struct frame *frame = palloc_get_page(PAL_USER);
 	/* TODO: Fill this function. */
+	if (frame == NULL) {
+		PANIC("TODO"); // 나중에 SWAP_OUT 해야 함 
+	}
+	hash_insert(&frame_table.hash, &frame->hash_elem);
 
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
@@ -160,8 +164,11 @@ vm_dealloc_page (struct page *page) {
 /* Claim the page that allocate on VA. */
 bool
 vm_claim_page (void *va UNUSED) {
-	struct page *page = NULL;
+	struct page *page = page_lookup(va);
 	/* TODO: Fill this function */
+	if (page == NULL) {
+		return false;
+	}
 
 	return vm_do_claim_page (page);
 }
@@ -176,6 +183,7 @@ vm_do_claim_page (struct page *page) {
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	spt_insert_page(&thread_current()->spt, page);	
 
 	return swap_in (page, frame->kva);
 }

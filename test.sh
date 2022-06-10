@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source ./activate
-cd ./userprog
+cd ./vm
 make clean
+make 
 make check
