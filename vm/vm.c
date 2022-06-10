@@ -6,6 +6,9 @@
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
+
+struct frame_table frame_table;
+
 void
 vm_init (void) {
 	vm_anon_init ();
@@ -16,6 +19,7 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+	hash_init(&frame_table.hash, page_hash, page_less, NULL);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -61,11 +65,12 @@ err:
 }
 
 /* Find VA from spt and return page. On error, return NULL. */
+// 수상 예외처리 
 struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
-	struct page *page = NULL;
+	struct page *page = page_lookup(va);
 	/* TODO: Fill this function. */
-	
+
 	return page;
 }
 
@@ -75,6 +80,10 @@ spt_insert_page (struct supplemental_page_table *spt UNUSED,
 		struct page *page UNUSED) {
 	int succ = false;
 	/* TODO: Fill this function. */
+
+	if (!hash_insert(&spt->hash, &page->hash_elem)) {
+		succ = true;
+	}
 
 	return succ;
 }
