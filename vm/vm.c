@@ -10,7 +10,7 @@
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 
-struct frame_table frame_table;
+struct list frame_table;
 
 void vm_init(void)
 {
@@ -22,7 +22,7 @@ void vm_init(void)
 	register_inspect_intr();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
-	hash_init(&frame_table.hash, page_hash, page_less, NULL);
+	list_init(&frame_table);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -63,9 +63,9 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
-		struct page *new_page = (struct page *)malloc(sizeof(struct page));
-		new_page->va = upage;
+		struct page *new_page = malloc(sizeof(struct page));
 		new_page->writable = writable;
+		// new_page->page_cnt = -1; // file-mapped page가 아니므로 -1.
 		if (type == VM_ANON)
 		{
 			printf("VM_ANON\n");
@@ -108,6 +108,20 @@ spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED)
 {
 	struct page *page = page_lookup(va);
 	/* TODO: Fill this function. */
+	// struct page *page = (struct page *)malloc(sizeof(struct page));
+	// struct hash_elem e;
+
+	/* 해당 va가 속해 있는 페이지 시작 주소를 가지는 page 만든다.
+		 해당 페이지가 spt에 있는지 확인할 것. */
+	// page->va = pg_round_down(va);
+
+	/* e와 같은 해시값(va)을 가지는 원소를 e에 해당하는 bucket list 내에서
+		 찾아 리턴한다. 만약 못 찾으면 NULL을 리턴한다. */
+	// e = hash_find(&spt->pages, &page->hash_elem);
+
+	// free(page);
+
+	// return e!=NULL ? hash_entry(e, struct page, hash_elem) : NULL;
 
 	return page;
 }
@@ -164,13 +178,15 @@ vm_get_frame(void)
 	// struct frame *frame = palloc_get_page(PAL_USER);
 	struct frame *frame = (struct frame *)malloc(sizeof(struct frame));
 	frame->kva = palloc_get_page(PAL_USER);
-	frame->page = NULL;
 	/* TODO: Fill this function. */
-	if (frame == NULL)
+	if (frame->kva == NULL)
 	{
-		PANIC("TODO"); // 나중에 SWAP_OUT 해야 함
+		frame->page = NULL;
+		// PANIC("TODO"); // 나중에 SWAP_OUT 해야 함
+		return frame; // eviction된 kva에 매핑
 	}
-	hash_insert(&frame_table.hash, &frame->hash_elem);
+	frame->page = NULL;
+	// list_push_back (&frame_table, &frame->frame_elem);
 
 	ASSERT(frame != NULL);
 	ASSERT(frame->page == NULL);
@@ -194,24 +210,26 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 												 bool user UNUSED, bool write UNUSED, bool not_present UNUSED)
 {
 	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
-	struct page *page = spt_find_page(spt, pg_round_down(addr));
-	printf("=========vm_try_handle_fault==========\n");
-	printf("addr: %p, user: %d, write: %d, not_present: %d\n", pg_round_down(addr), user, write, not_present);
+	struct page *page = NULL;
 	/* TODO: Validate the fault */
 
-	if (!is_user_vaddr(addr))
+	if (is_kernel_vaddr(addr))
 	{
 		return false;
 	}
-
-	if (page == NULL)
-	{
-		printf("=====222222\n");
-		return false;
-	}
-
 	/* TODO: Your code goes here */
-	return vm_do_claim_page(page);
+	/* 페이지의 Present bit이 0이면 -> 가상 메모리 상에 존재하지 않는다.
+		 1이면 메모리에 존재 -> 메모리에 프레임을 올리고 프레임과 페이지를 매핑시켜준다. */
+	if (not_present)
+	{
+		if (!vm_claim_page(addr))
+		{
+			return false;
+		}
+		else
+			return true;
+	}
+	return false;
 }
 
 /* Free the page.
@@ -300,7 +318,7 @@ page_lookup(const void *address)
 	struct page p;
 	struct hash_elem *e;
 
-	p.va = address;
+	p.va = pg_round_down(address);
 	e = hash_find(&thread_current()->spt.hash, &p.hash_elem);
 	return e != NULL ? hash_entry(e, struct page, hash_elem) : NULL;
 }

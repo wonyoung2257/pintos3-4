@@ -123,6 +123,11 @@ struct thread
 	struct file *running;
 	/* ------------------------------- */
 
+	/* ---------- Project 3 ---------- */
+	void *stack_bottom;
+	void *rsp_stack;
+	/* ------------------------------- */
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	// uint64_t *pml4; /* Page map level 4 */

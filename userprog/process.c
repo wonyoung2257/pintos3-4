@@ -768,19 +768,23 @@ static bool
 lazy_load_segment(struct page *page, void *aux)
 {
 	/* TODO: Load the segment from the file */
-	printf("======lazy_load_segment=====\n");
-	page->file_inf = (struct file_information *)aux;
+	struct file *file = ((struct file_information *)aux)->file;
+	off_t offset = ((struct file_information *)aux)->ofs;
+	size_t page_read_bytes = ((struct file_information *)aux)->read_bytes;
+	size_t page_zero_bytes = PGSIZE - page_read_bytes;
+	file_seek(file, offset); // file의 오프셋을 offset으로 바꾼다. 이제 offset부터 읽기 시작한다.
 
-	/* Load this page. */
-	// error - project 3
-	if (file_read(page->file_inf->file, page->va, page->file_inf->read_bytes) != (int)page->file_inf->read_bytes)
+	/* 페이지에 매핑된 물리 메모리(frame, 커널 가상 주소)에 파일의 데이터를 읽어온다. */
+	/* 제대로 못 읽어오면 페이지를 FREE시키고 FALSE 리턴 */
+	if (file_read(file, page->frame->kva, page_read_bytes) != (int)page_read_bytes)
 	{
-		// palloc_free_page(page->va);
+		palloc_free_page(page->frame->kva);
 		return false;
 	}
-	memset(page->va + page->file_inf->read_bytes, 0, page->file_inf->zero_bytes);
+	/* 만약 1페이지 못 되게 받아왔다면 남는 데이터를 0으로 초기화한다. */
+	memset(page->frame->kva + page_read_bytes, 0, page_zero_bytes);
+
 	return true;
-	// memset(page->va + aux->read_bytes, 0, PGSIZE- aux->read_bytes);
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
 }
@@ -803,11 +807,12 @@ static bool
 load_segment(struct file *file, off_t ofs, uint8_t *upage,
 						 uint32_t read_bytes, uint32_t zero_bytes, bool writable)
 {
-	printf("==============================%p==============================\n", upage);
 	ASSERT((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT(pg_ofs(upage) == 0);
 	ASSERT(ofs % PGSIZE == 0);
 
+	/* upage 주소부터 1페이지 단위씩 UNINIT 페이지를 만들어 프로세스의 spt에 넣는다(vm_alloc_page_with_initializer).
+		 이 때 각 페이지의 타입에 맞게 initializer도 맞춰준다. */
 	while (read_bytes > 0 || zero_bytes > 0)
 	{
 		/* Do calculate how to fill this page.
@@ -821,19 +826,16 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		file_inf->file = file;
 		file_inf->ofs = ofs;
 		file_inf->read_bytes = page_read_bytes;
-		file_inf->writable = writable;
-		file_inf->zero_bytes = page_zero_bytes;
-
-		void *aux = file_inf;
 
 		if (!vm_alloc_page_with_initializer(VM_ANON, upage,
-																				writable, lazy_load_segment, aux))
+																				writable, lazy_load_segment, file_inf))
 			return false;
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
+		ofs += page_read_bytes;
 	}
 	return true;
 }
@@ -849,14 +851,18 @@ setup_stack(struct intr_frame *if_)
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
+	/* ANON 페이지로 만들 UNINIT 페이지를 stack_bottom에서 위로 PGSIZE만큼(1 PAGE) 만든다.
+		 이 때 TYPE에 VM_MARKER_0 flag를 추가함으로써 이 페이지가 STACK에 있다는 것을 표시한다. */
 	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom, true, NULL, NULL))
 	{
-		success = true;
+		success = vm_claim_page(stack_bottom);
+		// success = true;
 	};
 
 	if (success)
 	{
 		if_->rsp = USER_STACK;
+		thread_current()->stack_bottom = stack_bottom;
 		// new_page->stack_bottom = stack_bottom;
 	}
 	// else
@@ -868,4 +874,12 @@ setup_stack(struct intr_frame *if_)
 
 	return success;
 }
+/*   구현 후 스택의 모습
+		 ------------------------- <---- USER_STACK == if_->rsp
+		 |                       |
+		 |       NEW PAGE        |
+		 |                       |
+		 |                       |
+		 ------------------------- <---- stack_bottom
+*/
 #endif /* VM */

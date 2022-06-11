@@ -19,15 +19,18 @@ void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 
 /* ---------- Project 2 ---------- */
-void check_address(const uint64_t *uaddr);
+// void check_address(const uint64_t *uaddr);
+/* ---------- Project 3 ---------- */
+struct page *check_address(void *uaddr);
+void check_valid_buffer(void *buffer, unsigned size, void *rsp, bool to_write);
 
-void halt(void);	   /* 구현 완료 */
+void halt(void);			 /* 구현 완료 */
 void exit(int status); /* 구현 완료 */
 tid_t fork(const char *thread_name, struct intr_frame *f);
 int exec(const char *cmd_line);
-int wait(tid_t child_tid UNUSED);					  /* process_wait()으로 대체 필요 */
+int wait(tid_t child_tid UNUSED);											/* process_wait()으로 대체 필요 */
 bool create(const char *file, unsigned initial_size); /* 구현 완료 */
-bool remove(const char *file);						  /* 구현 완료 */
+bool remove(const char *file);												/* 구현 완료 */
 int open(const char *file);
 int filesize(int fd);
 int read(int fd, void *buffer, unsigned size);
@@ -46,8 +49,8 @@ void close(int fd);
  * The syscall instruction works by reading the values from the the Model
  * Specific Register (MSR). For the details, see the manual. */
 
-#define MSR_STAR 0xc0000081			/* Segment selector msr */
-#define MSR_LSTAR 0xc0000082		/* Long mode SYSCALL target */
+#define MSR_STAR 0xc0000081					/* Segment selector msr */
+#define MSR_LSTAR 0xc0000082				/* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 /* ---------- Project 2 ---------- */
 const int STDIN = 0;
@@ -63,10 +66,10 @@ void syscall_init(void)
 	 * until the syscall_entry swaps the userland stack to the kernel
 	 * mode stack. Therefore, we masked the FLAG_FL. */
 	write_msr(MSR_SYSCALL_MASK,
-			  FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
+						FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 
 	/* ---------- Project 2 ---------- */
-	lock_init(&filesys_lock); 
+	lock_init(&filesys_lock);
 	/* ------------------------------- */
 }
 
@@ -109,9 +112,11 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		f->R.rax = filesize(f->R.rdi);
 		break;
 	case SYS_READ:
+		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 1);
 		f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	case SYS_WRITE:
+		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 0);
 		f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	case SYS_SEEK:
@@ -131,12 +136,39 @@ void syscall_handler(struct intr_frame *f UNUSED)
 }
 
 /* ---------- Project 2 ---------- */
-void check_address(const uint64_t *user_addr)
+// void check_address(const uint64_t *user_addr)
+// {
+// 	struct thread *curr = thread_current();
+// 	if (user_addr = NULL || !(is_user_vaddr(user_addr)) || pml4_get_page(curr->pml4, user_addr) == NULL)
+// 	{
+// 		exit(-1);
+// 	}
+// }
+/* ---------- Project 3 ---------- */
+struct page *check_address(void *addr)
 {
-	struct thread *curr = thread_current();
-	if (user_addr = NULL || !(is_user_vaddr(user_addr)) || pml4_get_page(curr->pml4, user_addr) == NULL)
+	/* 주소 addr이 유저 가상 주소가 아니거나 pml4에 없으면 프로세스 종료 */
+	if (addr == NULL || !is_user_vaddr(addr))
 	{
 		exit(-1);
+	}
+	/* 유저 가상 주소면 SPT에서 페이지 찾아서 리턴 */
+	return spt_find_page(&thread_current()->spt, addr);
+}
+void check_valid_buffer(void *buffer, unsigned size, void *rsp, bool to_write)
+{
+	/* 버퍼 내의 시작부터 끝까지의 각 주소를 모두 check_address*/
+	for (int i = 0; i < size; i++)
+	{
+		struct page *page = check_address(buffer + i);
+
+		/* 해당 주소가 포함된 페이지가 spt에 없다면 */
+		if (page == NULL)
+			exit(-1);
+
+		/* write 시스템 콜을 호출했는데 이 페이지가 쓰기가 허용된 페이지가 아닌 경우 */
+		if (to_write == true && page->writable == false)
+			exit(-1);
 	}
 }
 
@@ -190,7 +222,7 @@ void halt(void)
 /**
  * exit - thread_exit() -> process_exit()
  * 		 	해당 프로세스의 부모가 기다리고 있는 경우를 위해 status를 반환
-*/
+ */
 void exit(int status)
 {
 	struct thread *curr = thread_current();
@@ -217,7 +249,7 @@ int exec(const char *cmd_line)
 	cmd_line_cp = palloc_get_page(0);
 	if (cmd_line_cp == NULL)
 		exit(-1);
-		
+
 	strlcpy(cmd_line_cp, cmd_line, size + 1);
 
 	if (process_exec(cmd_line_cp) == -1)
@@ -338,7 +370,7 @@ int write(int fd, const void *buffer, unsigned size)
 	/* STDOUT */
 	if (fd == STDOUT) /* to print buffer strings on the console */
 	{
-		putbuf(buffer, size); 
+		putbuf(buffer, size);
 		ret = size;
 	}
 	/* STDIN */
@@ -358,8 +390,8 @@ int write(int fd, const void *buffer, unsigned size)
 }
 
 /**
- * seek - 
-*/
+ * seek -
+ */
 void seek(int fd, unsigned position)
 {
 	if (fd <= 1)
@@ -374,7 +406,7 @@ void seek(int fd, unsigned position)
 
 /**
  * tell - file 구조체 안에 pos는 현재 위치를 나타냄
-*/
+ */
 unsigned tell(int fd)
 {
 	if (fd <= 1)
