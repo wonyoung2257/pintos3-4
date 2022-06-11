@@ -851,7 +851,7 @@ setup_stack(struct intr_frame *if_)
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
-	if (vm_alloc_page_with_initializer(VM_ANON || VM_MARKER_0, stack_bottom, true, NULL, NULL))
+	if (vm_alloc_page_with_initializer(VM_ANON | VM_MARKER_0, stack_bottom, true, NULL, NULL))
 	{
 		success = true;
 	};

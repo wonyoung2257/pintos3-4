@@ -70,8 +70,9 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		{
 			uninit_new(new_page, upage, init, type, aux, file_backed_initializer);
 		}
-		else if (type == VM_ANON || VM_MARKER_0)
+		else if (type == VM_ANON | VM_MARKER_0)
 		{
+			printf("type == VM_ANON || VM_MARKER_0\n");
 			new_page->va = upage;
 			if (spt_insert_page(spt, new_page))
 			{
