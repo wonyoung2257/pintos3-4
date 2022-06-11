@@ -820,13 +820,13 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		struct file_information file_inf;
-		file_inf.file = file;
-		file_inf.ofs = ofs;
-		file_inf.read_bytes = page_read_bytes;
-		file_inf.writable = writable;
+		struct file_information *file_inf;
+		file_inf->file = file;
+		file_inf->ofs = ofs;
+		file_inf->read_bytes = page_read_bytes;
+		file_inf->writable = writable;
 
-		void *aux = (void *)&file_inf;
+		void *aux = file_inf;
 
 		if (!vm_alloc_page_with_initializer(VM_ANON, upage,
 																				writable, lazy_load_segment, aux))

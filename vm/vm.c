@@ -154,7 +154,7 @@ static struct frame *
 vm_get_frame(void)
 {
 	// struct frame *frame = palloc_get_page(PAL_USER);
-	struct frame *frame = malloc(sizeof(frame));
+	struct frame *frame = (struct frame *)malloc(sizeof(struct frame));
 	frame->kva = palloc_get_page(PAL_USER);
 	frame->page = NULL;
 	/* TODO: Fill this function. */
@@ -234,11 +234,12 @@ vm_do_claim_page(struct page *page)
 	page->frame = frame;
 
 	struct thread *t = thread_current();
-	printf("vm_do_claim_page2222\n");
+	// printf("page->file_inf->writable: %d\n", page->file_inf->writable);
+	// printf("vm_do_claim_page2222\n");
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	// spt_insert_page(&t->spt, page);
 
-	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->file_inf->writable))
+	if (!pml4_set_page(t->pml4, page->va, frame->kva, true))
 		return false;
 	printf("vm_do_claim_page3333\n");
 	return swap_in(page, frame->kva);
