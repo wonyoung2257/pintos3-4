@@ -311,7 +311,7 @@ int filesize(int fd)
 
 int read(int fd, void *buffer, unsigned size)
 {
-	check_address(buffer);
+	// check_address(buffer);
 	lock_acquire(&filesys_lock);
 
 	int ret;
@@ -355,7 +355,7 @@ int read(int fd, void *buffer, unsigned size)
 
 int write(int fd, const void *buffer, unsigned size)
 {
-	check_address(buffer);
+	// check_address(buffer);
 	lock_acquire(&filesys_lock);
 
 	int ret;
