@@ -6,6 +6,7 @@
         "mmu.h": "c",
         "file.h": "c",
         "syscall.h": "c",
-        "process.h": "c"
+        "process.h": "c",
+        "inspect.h": "c"
     }
 }

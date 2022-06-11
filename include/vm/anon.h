@@ -4,12 +4,14 @@
 struct page;
 enum vm_type;
 
-struct anon_page {
+struct anon_page
+{
     struct list_elem anon_elem;
+    enum vm_type vm_type;
     // tick ?
 };
 
-void vm_anon_init (void);
-bool anon_initializer (struct page *page, enum vm_type type, void *kva);
+void vm_anon_init(void);
+bool anon_initializer(struct page *page, enum vm_type type, void *kva);
 
 #endif
