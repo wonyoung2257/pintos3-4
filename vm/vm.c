@@ -4,6 +4,8 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 
+// project 3
+#include "include/threads/vaddr.h"
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 
@@ -173,10 +175,18 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 												 bool user UNUSED, bool write UNUSED, bool not_present UNUSED)
 {
 	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
-	struct page *page = NULL;
+	struct page *page = spt_find_page(spt, addr);
 	/* TODO: Validate the fault */
-	/* TODO: Your code goes here */
+	if (is_kernel_vaddr(addr))
+	{
+		return false;
+	}
 
+	if (page == NULL)
+	{
+		return false;
+	}
+	/* TODO: Your code goes here */
 	return vm_do_claim_page(page);
 }
 
@@ -210,11 +220,12 @@ vm_do_claim_page(struct page *page)
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
-
+	struct thread *t = thread_current();
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-	spt_insert_page(&thread_current()->spt, page);
+	// spt_insert_page(&t->spt, page);
+	pml4_get_page(t->pml4, page->va) == NULL &&pml4_set_page(t->pml4, page->va, frame->kva, page->file_inf->writable);
 
-	return swap_in(page, frame->kva);
+	return false;
 }
 
 /* Initialize new supplemental page table */
