@@ -50,6 +50,7 @@ struct file_information
 	struct file *file;
 	off_t ofs;
 	uint32_t read_bytes;
+	uint32_t zero_bytes;
 	bool writable;
 };
 
@@ -63,6 +64,7 @@ struct page
 	struct hash_elem hash_elem; /* Hash table element. */
 	struct file_information *file_inf;
 	void *stack_bottom;
+	bool writable;
 	// dirty, access bit 추가
 
 	/* Per-type data are binded into the union.

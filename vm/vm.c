@@ -6,6 +6,7 @@
 
 // project 3
 #include "include/threads/vaddr.h"
+#include "include/threads/pte.h"
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 
@@ -58,12 +59,16 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page(spt, upage) == NULL)
 	{
+		printf("type: %d, addr: %p\n", type, upage);
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		struct page *new_page = (struct page *)malloc(sizeof(struct page));
+		new_page->va = upage;
+		new_page->writable = writable;
 		if (type == VM_ANON)
 		{
+			printf("VM_ANON\n");
 			uninit_new(new_page, upage, init, type, aux, anon_initializer);
 		}
 		else if (type == VM_FILE)
@@ -72,13 +77,16 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		}
 		else if (type == VM_ANON | VM_MARKER_0)
 		{
+			// 스택을 페이지 할당하고 프레임과 연결
 			printf("type == VM_ANON || VM_MARKER_0\n");
 			new_page->va = upage;
+			new_page->writable = writable;
 			if (spt_insert_page(spt, new_page))
 			{
 				return vm_claim_page(upage);
 			}
 		}
+
 		/* TODO: Insert the page into the spt. */
 		if (!spt_insert_page(spt, new_page))
 		{
@@ -186,18 +194,22 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 												 bool user UNUSED, bool write UNUSED, bool not_present UNUSED)
 {
 	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
-	struct page *page = spt_find_page(spt, addr);
-	printf("vm_try_handle_fault\n");
+	struct page *page = spt_find_page(spt, pg_round_down(addr));
+	printf("=========vm_try_handle_fault==========\n");
+	printf("addr: %p, user: %d, write: %d, not_present: %d\n", pg_round_down(addr), user, write, not_present);
 	/* TODO: Validate the fault */
-	if (is_kernel_vaddr(addr))
+
+	if (!is_user_vaddr(addr))
 	{
 		return false;
 	}
 
 	if (page == NULL)
 	{
+		printf("=====222222\n");
 		return false;
 	}
+
 	/* TODO: Your code goes here */
 	return vm_do_claim_page(page);
 }
@@ -239,9 +251,10 @@ vm_do_claim_page(struct page *page)
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	// spt_insert_page(&t->spt, page);
 
-	if (!pml4_set_page(t->pml4, page->va, frame->kva, true))
+	if (!(pml4_get_page(t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, page->writable)))
 		return false;
-	printf("vm_do_claim_page3333\n");
+	// return true;
+
 	return swap_in(page, frame->kva);
 
 	// return false;

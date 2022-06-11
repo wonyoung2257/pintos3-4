@@ -272,8 +272,7 @@ int process_exec(void *f_name)
 	palloc_free_page(file_name);
 	if (!success)
 		return -1;
-
-	// hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
+	hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
 
 	/* Start switched process. */
 	do_iret(&_if);
@@ -579,7 +578,6 @@ static void argument_stack(struct intr_frame *if_, int argv_cnt, char **argv_lis
 	{
 		argc_len = strlen(argv_list[i]);
 		if_->rsp = if_->rsp - (argc_len + 1);
-		printf("11111111\n");
 		memcpy(if_->rsp, argv_list[i], (argc_len + 1));
 		argu_addr[i] = if_->rsp;
 	}
@@ -770,19 +768,17 @@ static bool
 lazy_load_segment(struct page *page, void *aux)
 {
 	/* TODO: Load the segment from the file */
+	printf("======lazy_load_segment=====\n");
 	page->file_inf = (struct file_information *)aux;
-	if (!vm_claim_page(page->va) == NULL)
-	{
-		return false;
-	}
 
 	/* Load this page. */
 	// error - project 3
 	if (file_read(page->file_inf->file, page->va, page->file_inf->read_bytes) != (int)page->file_inf->read_bytes)
 	{
-		palloc_free_page(page->va);
+		// palloc_free_page(page->va);
 		return false;
 	}
+	memset(page->va + page->file_inf->read_bytes, 0, page->file_inf->zero_bytes);
 	return true;
 	// memset(page->va + aux->read_bytes, 0, PGSIZE- aux->read_bytes);
 	/* TODO: This called when the first page fault occurs on address VA. */
@@ -807,6 +803,7 @@ static bool
 load_segment(struct file *file, off_t ofs, uint8_t *upage,
 						 uint32_t read_bytes, uint32_t zero_bytes, bool writable)
 {
+	printf("==============================%p==============================\n", upage);
 	ASSERT((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT(pg_ofs(upage) == 0);
 	ASSERT(ofs % PGSIZE == 0);
@@ -820,11 +817,12 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		struct file_information *file_inf;
+		struct file_information *file_inf = (struct file_information *)malloc(sizeof(struct file_information));
 		file_inf->file = file;
 		file_inf->ofs = ofs;
 		file_inf->read_bytes = page_read_bytes;
 		file_inf->writable = writable;
+		file_inf->zero_bytes = page_zero_bytes;
 
 		void *aux = file_inf;
 
@@ -851,26 +849,11 @@ setup_stack(struct intr_frame *if_)
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
-	if (vm_alloc_page_with_initializer(VM_ANON | VM_MARKER_0, stack_bottom, true, NULL, NULL))
+	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom, true, NULL, NULL))
 	{
 		success = true;
 	};
 
-	// printf("1111\n");
-	// struct page *new_page = palloc_get_page(PAL_USER);
-	// if (new_page == NULL)
-	// {
-	// 	return success;
-	// }
-	// printf("2222\n");
-	// new_page->va = stack_bottom;
-
-	// if (spt_insert_page(&thread_current()->spt, new_page))
-	// {
-	// 	printf("33333\n");
-	// 	success = vm_claim_page(new_page->va);
-	// 	printf("44444\n");
-	// }
 	if (success)
 	{
 		if_->rsp = USER_STACK;
