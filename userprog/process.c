@@ -268,7 +268,6 @@ int process_exec(void *f_name)
 
 	/* And then load the binary */
 	success = load(file_name, &_if);
-
 	/* If load failed, quit. */
 	palloc_free_page(file_name);
 	if (!success)
@@ -551,7 +550,6 @@ load(const char *file_name, struct intr_frame *if_)
 	/* Set up stack. */
 	if (!setup_stack(if_))
 		goto done;
-
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
 
@@ -559,7 +557,6 @@ load(const char *file_name, struct intr_frame *if_)
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 
 	/* ----------- project2 ---------- */
-
 	argument_stack(if_, argv_cnt, argv_list);
 
 	/*---------------------------------*/
@@ -582,6 +579,7 @@ static void argument_stack(struct intr_frame *if_, int argv_cnt, char **argv_lis
 	{
 		argc_len = strlen(argv_list[i]);
 		if_->rsp = if_->rsp - (argc_len + 1);
+		printf("11111111\n");
 		memcpy(if_->rsp, argv_list[i], (argc_len + 1));
 		argu_addr[i] = if_->rsp;
 	}
@@ -762,6 +760,7 @@ install_page(void *upage, void *kpage, bool writable)
 	 * address, then map our page there. */
 	return (pml4_get_page(t->pml4, upage) == NULL && pml4_set_page(t->pml4, upage, kpage, writable));
 }
+// 주석해제
 #else
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
@@ -771,8 +770,8 @@ static bool
 lazy_load_segment(struct page *page, void *aux)
 {
 	/* TODO: Load the segment from the file */
-	page->file_inf = aux;
-	if (vm_claim_page(page->va) == NULL)
+	page->file_inf = (struct file_information *)aux;
+	if (!vm_claim_page(page->va) == NULL)
 	{
 		return false;
 	}
@@ -827,7 +826,7 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		file_inf.read_bytes = page_read_bytes;
 		file_inf.writable = writable;
 
-		void *aux = &file_inf;
+		void *aux = (void *)&file_inf;
 
 		if (!vm_alloc_page_with_initializer(VM_ANON, upage,
 																				writable, lazy_load_segment, aux))
@@ -845,29 +844,43 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack(struct intr_frame *if_)
 {
+
 	bool success = false;
 	void *stack_bottom = (void *)(((uint8_t *)USER_STACK) - PGSIZE);
 
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
-	struct page *new_page = palloc_get_page(PAL_USER);
-	if (new_page == NULL)
+	if (vm_alloc_page_with_initializer(VM_ANON || VM_MARKER_0, stack_bottom, true, NULL, NULL))
 	{
-		return success;
-	}
-	new_page->va = USER_STACK;
-	success = spt_insert_page(&thread_current()->spt, new_page);
+		success = true;
+	};
+
+	// printf("1111\n");
+	// struct page *new_page = palloc_get_page(PAL_USER);
+	// if (new_page == NULL)
+	// {
+	// 	return success;
+	// }
+	// printf("2222\n");
+	// new_page->va = stack_bottom;
+
+	// if (spt_insert_page(&thread_current()->spt, new_page))
+	// {
+	// 	printf("33333\n");
+	// 	success = vm_claim_page(new_page->va);
+	// 	printf("44444\n");
+	// }
 	if (success)
 	{
 		if_->rsp = USER_STACK;
-		new_page->stack_bottom = stack_bottom;
+		// new_page->stack_bottom = stack_bottom;
 	}
-	else
-	{
-		palloc_free_page(new_page);
-	}
-
+	// else
+	// {
+	// 	palloc_free_page(new_page);
+	// }
+	// printf("5555\n");
 	/* TODO: Your code goes here */
 
 	return success;
