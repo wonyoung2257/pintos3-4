@@ -149,7 +149,7 @@ struct page *check_address(void *addr)
 {
 /* 주소 addr이 유저 가상 주소가 아니거나 pml4에 없으면 프로세스 종료 */
 #ifdef VM
-	if (addr == NULL || !is_user_vaddr(addr))
+	if (addr == NULL || !is_user_vaddr(addr) || spt_find_page(&thread_current()->spt, addr) == NULL)
 	{
 		exit(-1);
 	}
