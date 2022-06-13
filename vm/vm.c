@@ -163,6 +163,12 @@ vm_get_frame(void)
 static void
 vm_stack_growth(void *addr UNUSED)
 {
+	void *stack_bottom = (void *)(((uint8_t *)thread_current()->stack_bottom) - PGSIZE);
+	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom, true, NULL, NULL))
+	{
+		vm_claim_page(stack_bottom);
+		thread_current()->stack_bottom = stack_bottom;
+	}
 }
 
 /* Handle the fault on write_protected page */
@@ -188,12 +194,17 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		 1이면 메모리에 존재 -> 메모리에 프레임을 올리고 프레임과 페이지를 매핑시켜준다. */
 	if (not_present)
 	{
-		if (!vm_claim_page(addr))
+		// 스택 영역 확인
+		if (thread_current()->stack_bottom > addr && addr > thread_current()->stack_bottom - PGSIZE)
 		{
-			return false;
-		}
-		else
+			vm_stack_growth(addr);
 			return true;
+		}
+
+		if (vm_claim_page(addr))
+		{
+			return true;
+		}
 	}
 	return false;
 }
@@ -267,7 +278,6 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 			return false;
 		}
 		struct page *child_page = spt_find_page(dst, page->va);
-
 		// child_page->frame = page->frame;
 		if (!vm_claim_page(page->va))
 		{
@@ -277,9 +287,6 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		{
 			memcpy(child_page->frame->kva, page->frame->kva, PGSIZE);
 		}
-
-		// printf("parent_page: %p, child_page: %p\n", page->va, child_page->va);
-		// printf("parent_frame: %p, child_frame: %p\n", page->frame->kva, child_page->frame->kva);
 	}
 	return true;
 }

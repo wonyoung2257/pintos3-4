@@ -857,7 +857,7 @@ setup_stack(struct intr_frame *if_)
 	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom, true, NULL, NULL))
 	{
 		success = vm_claim_page(stack_bottom);
-	};
+	}
 
 	if (success)
 	{
