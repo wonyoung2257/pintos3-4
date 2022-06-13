@@ -77,14 +77,6 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		/* TODO: Insert the page into the spt. */
 		spt_insert_page(spt, new_page);
 		return true;
-		// if (!)
-		// {
-		// 	goto err;
-		// }
-		// else
-		// {
-		// 	return true;
-		// }
 	}
 err:
 	return false;
@@ -97,21 +89,6 @@ spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED)
 {
 	struct page *page = page_lookup(va);
 	/* TODO: Fill this function. */
-	// struct page *page = (struct page *)malloc(sizeof(struct page));
-	// struct hash_elem e;
-
-	/* 해당 va가 속해 있는 페이지 시작 주소를 가지는 page 만든다.
-		 해당 페이지가 spt에 있는지 확인할 것. */
-	// page->va = pg_round_down(va);
-
-	/* e와 같은 해시값(va)을 가지는 원소를 e에 해당하는 bucket list 내에서
-		 찾아 리턴한다. 만약 못 찾으면 NULL을 리턴한다. */
-	// e = hash_find(&spt->pages, &page->hash_elem);
-
-	// free(page);
-
-	// return e!=NULL ? hash_entry(e, struct page, hash_elem) : NULL;
-
 	return page;
 }
 

@@ -51,7 +51,6 @@ struct file_information
 	off_t ofs;
 	uint32_t read_bytes;
 	uint32_t zero_bytes;
-	bool writable;
 };
 
 struct page
@@ -63,7 +62,6 @@ struct page
 	/* Your implementation */
 	struct hash_elem hash_elem; /* Hash table element. */
 	struct file_information *file_inf;
-	void *stack_bottom;
 	bool writable;
 	// dirty, access bit 추가
 

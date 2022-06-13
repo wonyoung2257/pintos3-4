@@ -844,7 +844,6 @@ load_segment(struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack(struct intr_frame *if_)
 {
-
 	bool success = false;
 	void *stack_bottom = (void *)(((uint8_t *)USER_STACK) - PGSIZE);
 
@@ -856,20 +855,13 @@ setup_stack(struct intr_frame *if_)
 	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom, true, NULL, NULL))
 	{
 		success = vm_claim_page(stack_bottom);
-		// success = true;
 	};
 
 	if (success)
 	{
 		if_->rsp = USER_STACK;
 		thread_current()->stack_bottom = stack_bottom;
-		// new_page->stack_bottom = stack_bottom;
 	}
-	// else
-	// {
-	// 	palloc_free_page(new_page);
-	// }
-	// printf("5555\n");
 	/* TODO: Your code goes here */
 
 	return success;

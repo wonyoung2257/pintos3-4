@@ -6,6 +6,7 @@ enum vm_type;
 
 struct anon_page
 {
+    // 아직 왜 필요한지 모름
     int swap_index; // swap된 데이터들이 저장된 섹터 구역을 의미한다.
     // struct list_elem anon_elem;
     // enum vm_type vm_type;
