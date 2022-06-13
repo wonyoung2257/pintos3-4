@@ -7,6 +7,7 @@
 // project 3
 #include "include/threads/vaddr.h"
 #include "include/threads/pte.h"
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 
@@ -163,11 +164,13 @@ vm_get_frame(void)
 static void
 vm_stack_growth(void *addr UNUSED)
 {
-	void *stack_bottom = (void *)(((uint8_t *)thread_current()->stack_bottom) - PGSIZE);
-	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom, true, NULL, NULL))
+	void *stack_bottom_ = (void *)(((uint8_t *)thread_current()->stack_bottom) - PGSIZE);
+	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom_, true, NULL, NULL))
 	{
-		vm_claim_page(stack_bottom);
-		thread_current()->stack_bottom = stack_bottom;
+		thread_current()->stack_bottom = stack_bottom_;
+		vm_claim_page(stack_bottom_);
+		// if (!vm_claim_page(stack_bottom_))
+		// 	exit(-1);
 	}
 }
 
@@ -194,17 +197,19 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		 1이면 메모리에 존재 -> 메모리에 프레임을 올리고 프레임과 페이지를 매핑시켜준다. */
 	if (not_present)
 	{
-		// 스택 영역 확인
-		if (thread_current()->stack_bottom > addr && addr > thread_current()->stack_bottom - PGSIZE)
+		if (f->rsp - PGSIZE < addr && addr <= f->rsp)
 		{
 			vm_stack_growth(addr);
 			return true;
 		}
-
 		if (vm_claim_page(addr))
-		{
 			return true;
-		}
+		// 스택 영역 확인
+		// printf("======f->rsp : %p=====\n", f->rsp);
+		// printf("+++++++ADDR : %p+++++++\n", addr);
+		// printf("+++++++STACK BOTTOM : %p+++++++\n", thread_current()->stack_bottom);
+		// if (f->rsp > thread_current()->stack_bottom && f->rsp < thread_current()->stack_bottom - PGSIZE)
+		// 	exit(-1);
 	}
 	return false;
 }
