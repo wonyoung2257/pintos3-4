@@ -273,8 +273,11 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		{
 			return false;
 		}
+		if (page->frame != NULL)
+		{
+			memcpy(child_page->frame->kva, page->frame->kva, PGSIZE);
+		}
 
-		memcpy(child_page->frame->kva, page->frame->kva, PGSIZE);
 		// printf("parent_page: %p, child_page: %p\n", page->va, child_page->va);
 		// printf("parent_frame: %p, child_frame: %p\n", page->frame->kva, child_page->frame->kva);
 	}
@@ -292,7 +295,11 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	while (hash_next(&hast_iter))
 	{
 		struct page *page = hash_entry(hash_cur(&hast_iter), struct page, hash_elem);
-		vm_dealloc_page(page);
+		// printf("page: %p, kva : %p\n", page->va, page->frame->kva);
+		// palloc_free_page(page->frame->kva);
+		// free(page->frame);
+		// free(page);
+		// vm_dealloc_page(page);
 	}
 }
 
