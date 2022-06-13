@@ -65,4 +65,7 @@ static void
 anon_destroy(struct page *page)
 {
 	struct anon_page *anon_page = &page->anon;
+	// palloc_free_page(page);
+	// page->frame = NULL;
+	// frame 날려야하지 않나????
 }

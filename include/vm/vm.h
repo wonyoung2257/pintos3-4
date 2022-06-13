@@ -63,6 +63,7 @@ struct page
 	struct hash_elem hash_elem; /* Hash table element. */
 	struct file_information *file_inf;
 	bool writable;
+
 	// dirty, access bit 추가
 
 	/* Per-type data are binded into the union.

@@ -253,6 +253,26 @@ void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 																	struct supplemental_page_table *src UNUSED)
 {
+	// dst -> child, src -> parent
+	struct hash_iterator parnet_hast_iter;
+
+	hash_first(&parnet_hast_iter, &src->hash);
+	while (hash_next(&parnet_hast_iter))
+	{
+		struct page *page = hash_entry(hash_cur(&parnet_hast_iter), struct page, hash_elem);
+		// 수상 : 일단 anon만 복사
+		if (!vm_alloc_page_with_initializer(VM_ANON, page->va, page->writable, NULL, NULL))
+		{
+			return false;
+		}
+		struct page *child_page = spt_find_page(dst, page->va);
+		child_page->frame = page->frame;
+		// if (!vm_claim_page(page->va))
+		// {
+		// 	return false;
+		// }
+	}
+	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -260,6 +280,14 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	struct hash_iterator hast_iter;
+
+	hash_first(&hast_iter, &spt->hash);
+	while (hash_next(&hast_iter))
+	{
+		struct page *page = hash_entry(hash_cur(&hast_iter), struct page, hash_elem);
+		vm_dealloc_page(page);
+	}
 }
 
 unsigned
