@@ -147,13 +147,22 @@ void syscall_handler(struct intr_frame *f UNUSED)
 /* ---------- Project 3 ---------- */
 struct page *check_address(void *addr)
 {
-	/* 주소 addr이 유저 가상 주소가 아니거나 pml4에 없으면 프로세스 종료 */
+/* 주소 addr이 유저 가상 주소가 아니거나 pml4에 없으면 프로세스 종료 */
+#ifdef VM
 	if (addr == NULL || !is_user_vaddr(addr))
 	{
 		exit(-1);
 	}
-	/* 유저 가상 주소면 SPT에서 페이지 찾아서 리턴 */
+
+#else
+	if (addr = NULL || !(is_user_vaddr(addr)) || pml4_get_page(thread_current()->pml4, addr) == NULL)
+	{
+		exit(-1);
+	}
+#endif
 	return spt_find_page(&thread_current()->spt, addr);
+
+	/* 유저 가상 주소면 SPT에서 페이지 찾아서 리턴 */
 }
 void check_valid_buffer(void *buffer, unsigned size, void *rsp, bool to_write)
 {

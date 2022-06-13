@@ -62,7 +62,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
-		struct page *new_page = malloc(sizeof(struct page));
+		struct page *new_page = (struct page *)malloc(sizeof(struct page));
 
 		// new_page->page_cnt = -1; // file-mapped page가 아니므로 -1.
 		if (type == VM_ANON)
@@ -284,23 +284,20 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	return true;
 }
 
+void supplemental_page_table_destructor(struct hash_elem *elem, void *aux)
+{
+	struct page *page = hash_entry(elem, struct page, hash_elem);
+	vm_dealloc_page(page);
+}
+
 /* Free the resource hold by the supplemental page table */
 void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	struct hash_iterator hast_iter;
+	// exec 할 때 page를 날리고 새로 만들어 주어야 함
 
-	hash_first(&hast_iter, &spt->hash);
-	while (hash_next(&hast_iter))
-	{
-		struct page *page = hash_entry(hash_cur(&hast_iter), struct page, hash_elem);
-		// printf("page: %p, kva : %p\n", page->va, page->frame->kva);
-		// palloc_free_page(page->frame->kva);
-		// free(page->frame);
-		// free(page);
-		// vm_dealloc_page(page);
-	}
+	hash_destroy(&spt->hash, supplemental_page_table_destructor);
 }
 
 unsigned

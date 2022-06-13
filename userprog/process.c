@@ -264,6 +264,9 @@ int process_exec(void *f_name)
 	/* We first kill the current context */
 	process_cleanup();
 
+	// #ifdef VM
+	supplemental_page_table_init(&thread_current()->spt);
+	// #endif
 	/* And then load the binary */
 	success = load(file_name, &_if);
 	/* If load failed, quit. */
@@ -343,7 +346,8 @@ static void process_cleanup(void)
 	uint64_t *pml4;
 	/* Destroy the current process's page directory and switch back
 	 * to the kernel-only page directory. */
-	pml4 = curr->pml4;
+
+	// pml4 = curr->pml4;
 	if (pml4 != NULL)
 	{
 		/* Correct ordering here is crucial.  We must set
@@ -353,9 +357,9 @@ static void process_cleanup(void)
 		 * directory before destroying the process's page
 		 * directory, or our active page directory will be one
 		 * that's been freed (and cleared). */
-		curr->pml4 = NULL;
-		pml4_activate(NULL);
-		pml4_destroy(pml4);
+		// curr->pml4 = NULL;
+		// pml4_activate(NULL);
+		// pml4_destroy(pml4);
 	}
 }
 
