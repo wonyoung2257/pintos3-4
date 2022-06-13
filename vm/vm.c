@@ -254,6 +254,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 																	struct supplemental_page_table *src UNUSED)
 {
 	// dst -> child, src -> parent
+	// frame에 있는 데이터는 copy해야하지 않을까???
 	struct hash_iterator parnet_hast_iter;
 
 	hash_first(&parnet_hast_iter, &src->hash);
@@ -266,11 +267,16 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 			return false;
 		}
 		struct page *child_page = spt_find_page(dst, page->va);
-		child_page->frame = page->frame;
-		// if (!vm_claim_page(page->va))
-		// {
-		// 	return false;
-		// }
+
+		// child_page->frame = page->frame;
+		if (!vm_claim_page(page->va))
+		{
+			return false;
+		}
+
+		memcpy(child_page->frame->kva, page->frame->kva, PGSIZE);
+		// printf("parent_page: %p, child_page: %p\n", page->va, child_page->va);
+		// printf("parent_frame: %p, child_frame: %p\n", page->frame->kva, child_page->frame->kva);
 	}
 	return true;
 }

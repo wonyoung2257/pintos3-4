@@ -105,7 +105,7 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 	// 		PRI_DEFAULT, __do_fork, thread_current ());
 }
 
-#ifndef VM
+// #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
 /**
@@ -158,7 +158,7 @@ static bool duplicate_pte(uint64_t *pte, void *va, void *aux)
 	}
 	return true;
 }
-#endif
+// #endif
 
 /* A thread function that copies parent's execution context.
  * Hint) parent->tf does not hold the userland context of the process.
@@ -197,7 +197,6 @@ static void __do_fork(void *aux)
 	if (!pml4_for_each(parent->pml4, duplicate_pte, parent)) // Page Table 복제(duplicate_pte)
 		goto error;
 #endif
-
 	/* TODO: Your code goes here.
 	 * TODO: Hint) To duplicate the file object, use `file_duplicate`
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
@@ -230,7 +229,6 @@ static void __do_fork(void *aux)
 		}
 	}
 	current->fd_idx = parent->fd_idx;
-
 	// child loaded successfully, wake up parent in process_fork
 	// 기다리고 있는 부모를 위해 sema_up
 	sema_up(&current->fork_sema);
