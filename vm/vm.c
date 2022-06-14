@@ -196,8 +196,9 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		struct thread *t = thread_current();
 		if (f->rsp - 8 <= addr)
 		{
-			if (t->stack_bottom - PGSIZE < USER_STACK - PGSIZE)
+			if (t->stack_bottom - PGSIZE < USER_STACK - 0x100000)
 				return false;
+			printf("f->rsp : %p, stack_bottom : %p, addr : %p\n", f->rsp, thread_current()->stack_bottom, addr);
 			vm_stack_growth(addr);
 			return true;
 		}

@@ -14,6 +14,7 @@
 #include "kernel/stdio.h"
 #include "threads/palloc.h"
 /* ------------------------------- */
+// #include "include/vm/file.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -23,6 +24,8 @@ void syscall_handler(struct intr_frame *);
 /* ---------- Project 3 ---------- */
 struct page *check_address(void *uaddr);
 void check_valid_buffer(void *buffer, unsigned size, void *rsp, bool to_write);
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap (void *addr);	
 
 void halt(void);			 /* 구현 완료 */
 void exit(int status); /* 구현 완료 */
@@ -38,6 +41,7 @@ int write(int fd, const void *buffer, unsigned size);
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
+
 /* ------------------------------- */
 
 /* System call.
@@ -77,6 +81,7 @@ void syscall_init(void)
 void syscall_handler(struct intr_frame *f UNUSED)
 {
 	// TODO: Your implementation goes here.
+	// rdi, rsi, rdx, r10, r8, and r9 순서
 	/* ---------- Project 2 ---------- */
 	switch (f->R.rax)
 	{
@@ -124,6 +129,12 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		break;
 	case SYS_CLOSE:
 		close(f->R.rdi);
+		break;
+	case SYS_MMAP:
+		f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+		break;
+	case SYS_MUNMAP:
+		munmap(f->R.rdi);
 		break;
 	default:
 		exit(-1);
@@ -428,3 +439,20 @@ void close(int fd)
 	file_close(file_obj);
 }
 /* ------------------------------- */
+
+void *
+mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+	check_address(addr);
+	struct file *file_obj = get_file_from_fd_table(fd);
+
+	if (!file_obj || !filesize(fd) || fd == 0 || fd == 1 ) 
+		return NULL;
+
+	return do_mmap(addr, length, writable, file_obj, offset);
+}
+
+void
+munmap (void *addr) {
+	check_address(addr);
+	do_munmap(addr);
+}

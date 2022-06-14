@@ -7,6 +7,10 @@ struct page;
 enum vm_type;
 
 struct file_page {
+	int mapid;  				/* 성공 시 리턴된 mapping id */
+	struct file* file;  		/* 매핑하는 파일의 파일 오브젝트 */
+	struct list_elem file_elem; /* mmap_file들의 리스트 연결을 위한 구조체 */
+	struct list page_list; 		/* mmap_file에 해당하는 모든 page들의 리스트 */
 };
 
 void vm_file_init (void);

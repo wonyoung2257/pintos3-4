@@ -485,6 +485,10 @@ init_thread(struct thread *t, const char *name, int priority)
 
 	t->running = NULL;
 	/* ------------------------------ */
+
+	/* -------- Project 3 ----------- */
+	list_init(&t->mmap_list);
+	/* ------------------------------ */
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
