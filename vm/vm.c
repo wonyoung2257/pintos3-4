@@ -84,7 +84,6 @@ err:
 }
 
 /* Find VA from spt and return page. On error, return NULL. */
-// 수상 예외처리
 struct page *
 spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED)
 {
@@ -149,7 +148,6 @@ vm_get_frame(void)
 	if (frame->kva == NULL)
 	{
 		frame->page = NULL;
-		// PANIC("TODO"); // 나중에 SWAP_OUT 해야 함
 		return frame; // eviction된 kva에 매핑
 	}
 	frame->page = NULL;
@@ -169,8 +167,6 @@ vm_stack_growth(void *addr UNUSED)
 	{
 		thread_current()->stack_bottom = stack_bottom_;
 		vm_claim_page(stack_bottom_);
-		// if (!vm_claim_page(stack_bottom_))
-		// 	exit(-1);
 	}
 }
 
@@ -195,21 +191,18 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Your code goes here */
 	/* 페이지의 Present bit이 0이면 -> 가상 메모리 상에 존재하지 않는다.
 		 1이면 메모리에 존재 -> 메모리에 프레임을 올리고 프레임과 페이지를 매핑시켜준다. */
+	struct thread *t = thread_current();
 	if (not_present)
 	{
-		if (f->rsp - PGSIZE < addr && addr <= f->rsp)
+		if (f->rsp - PGSIZE < addr && addr <= t->stack_bottom)
 		{
+			if (t->stack_bottom - PGSIZE < USER_STACK - (1 << 20))
+				return false;
 			vm_stack_growth(addr);
 			return true;
 		}
 		if (vm_claim_page(addr))
 			return true;
-		// 스택 영역 확인
-		// printf("======f->rsp : %p=====\n", f->rsp);
-		// printf("+++++++ADDR : %p+++++++\n", addr);
-		// printf("+++++++STACK BOTTOM : %p+++++++\n", thread_current()->stack_bottom);
-		// if (f->rsp > thread_current()->stack_bottom && f->rsp < thread_current()->stack_bottom - PGSIZE)
-		// 	exit(-1);
 	}
 	return false;
 }
@@ -245,18 +238,11 @@ vm_do_claim_page(struct page *page)
 	page->frame = frame;
 
 	struct thread *t = thread_current();
-	// printf("page->file_inf->writable: %d\n", page->file_inf->writable);
-	// printf("vm_do_claim_page2222\n");
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-	// spt_insert_page(&t->spt, page);
-
 	if (!(pml4_get_page(t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, page->writable)))
 		return false;
-	// return true;
 
 	return swap_in(page, frame->kva);
-
-	// return false;
 }
 
 /* Initialize new supplemental page table */
@@ -283,7 +269,6 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 			return false;
 		}
 		struct page *child_page = spt_find_page(dst, page->va);
-		// child_page->frame = page->frame;
 		if (!vm_claim_page(page->va))
 		{
 			return false;
@@ -308,7 +293,6 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	// exec 할 때 page를 날리고 새로 만들어 주어야 함
-
 	hash_destroy(&spt->hash, supplemental_page_table_destructor);
 }
 

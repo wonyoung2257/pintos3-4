@@ -559,7 +559,6 @@ load(const char *file_name, struct intr_frame *if_)
 
 	/* ----------- project2 ---------- */
 	argument_stack(if_, argv_cnt, argv_list);
-
 	/*---------------------------------*/
 
 	success = true;
@@ -770,6 +769,9 @@ static bool
 lazy_load_segment(struct page *page, void *aux)
 {
 	/* TODO: Load the segment from the file */
+	/* TODO: This called when the first page fault occurs on address VA. */
+	/* TODO: VA is available when calling this function. */
+
 	struct file *file = ((struct file_information *)aux)->file;
 	off_t offset = ((struct file_information *)aux)->ofs;
 	size_t page_read_bytes = ((struct file_information *)aux)->read_bytes;
@@ -787,8 +789,6 @@ lazy_load_segment(struct page *page, void *aux)
 	memset(page->frame->kva + page_read_bytes, 0, page_zero_bytes);
 
 	return true;
-	/* TODO: This called when the first page fault occurs on address VA. */
-	/* TODO: VA is available when calling this function. */
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -852,6 +852,7 @@ setup_stack(struct intr_frame *if_)
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
+	/* TODO: Your code goes here */
 	/* ANON 페이지로 만들 UNINIT 페이지를 stack_bottom에서 위로 PGSIZE만큼(1 PAGE) 만든다.
 		 이 때 TYPE에 VM_MARKER_0 flag를 추가함으로써 이 페이지가 STACK에 있다는 것을 표시한다. */
 	if (vm_alloc_page_with_initializer(VM_ANON, stack_bottom, true, NULL, NULL))
@@ -864,7 +865,6 @@ setup_stack(struct intr_frame *if_)
 		if_->rsp = USER_STACK;
 		thread_current()->stack_bottom = stack_bottom;
 	}
-	/* TODO: Your code goes here */
 
 	return success;
 }

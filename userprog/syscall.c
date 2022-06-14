@@ -77,9 +77,6 @@ void syscall_init(void)
 void syscall_handler(struct intr_frame *f UNUSED)
 {
 	// TODO: Your implementation goes here.
-	// printf ("system call! rax : %d\n", f->R.rax);
-	// thread_exit ();
-
 	/* ---------- Project 2 ---------- */
 	switch (f->R.rax)
 	{
@@ -135,15 +132,6 @@ void syscall_handler(struct intr_frame *f UNUSED)
 	/* ------------------------------- */
 }
 
-/* ---------- Project 2 ---------- */
-// void check_address(const uint64_t *user_addr)
-// {
-// 	struct thread *curr = thread_current();
-// 	if (user_addr = NULL || !(is_user_vaddr(user_addr)) || pml4_get_page(curr->pml4, user_addr) == NULL)
-// 	{
-// 		exit(-1);
-// 	}
-// }
 /* ---------- Project 3 ---------- */
 struct page *check_address(void *addr)
 {
@@ -160,10 +148,10 @@ struct page *check_address(void *addr)
 		exit(-1);
 	}
 #endif
-	return spt_find_page(&thread_current()->spt, addr);
-
 	/* 유저 가상 주소면 SPT에서 페이지 찾아서 리턴 */
+	return spt_find_page(&thread_current()->spt, addr);
 }
+
 void check_valid_buffer(void *buffer, unsigned size, void *rsp, bool to_write)
 {
 	/* 버퍼 내의 시작부터 끝까지의 각 주소를 모두 check_address*/
@@ -236,9 +224,7 @@ void exit(int status)
 {
 	struct thread *curr = thread_current();
 	curr->exit_status = status;
-
 	printf("%s: exit(%d)\n", thread_name(), status);
-
 	thread_exit();
 }
 
