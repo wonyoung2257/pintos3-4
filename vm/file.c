@@ -4,33 +4,32 @@
 // #include "userprog/process.c"
 // #include "include/threads/vaddr.h"
 // project 3
-#define FISIZE  (1 << 12)
+#define FISIZE (1 << 12)
 static struct disk *file_disk;
 
-static bool file_backed_swap_in (struct page *page, void *kva);
-static bool file_backed_swap_out (struct page *page);
-static void file_backed_destroy (struct page *page);
-
+static bool file_backed_swap_in(struct page *page, void *kva);
+static bool file_backed_swap_out(struct page *page);
+static void file_backed_destroy(struct page *page);
 
 static bool file_lazy_load_segment(struct page *page, void *aux);
 
 /* DO NOT MODIFY this struct */
 static const struct page_operations file_ops = {
-	.swap_in = file_backed_swap_in,
-	.swap_out = file_backed_swap_out,
-	.destroy = file_backed_destroy,
-	.type = VM_FILE,
+		.swap_in = file_backed_swap_in,
+		.swap_out = file_backed_swap_out,
+		.destroy = file_backed_destroy,
+		.type = VM_FILE,
 };
 
 /* The initializer of file vm */
-void
-vm_file_init (void) {
+void vm_file_init(void)
+{
 	file_disk = disk_get(0, 1);
 }
 
 /* Initialize the file backed page */
-bool
-file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
+bool file_backed_initializer(struct page *page, enum vm_type type, void *kva)
+{
 	/* Set up the handler */
 
 	struct uninit_page *uninit = &page->uninit;
@@ -38,43 +37,45 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 
 	page->operations = &file_ops;
 	struct file_page *file_page = &page->file;
-	list_init(&file_page->page_list);
 
-	list_push_back(&thread_current()->mmap_list, &file_page->file_elem);
-	
 	return true;
 }
 
 /* Swap in the page by read contents from the file. */
 static bool
-file_backed_swap_in (struct page *page, void *kva) {
+file_backed_swap_in(struct page *page, void *kva)
+{
 	struct file_page *file_page UNUSED = &page->file;
 }
 
 /* Swap out the page by writeback contents to the file. */
 static bool
-file_backed_swap_out (struct page *page) {
+file_backed_swap_out(struct page *page)
+{
 	struct file_page *file_page UNUSED = &page->file;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
 static void
-file_backed_destroy (struct page *page) {
+file_backed_destroy(struct page *page)
+{
 	struct file_page *file_page UNUSED = &page->file;
-	list_remove(&file_page->file_elem);
-	// 수상
-	if (page->frame && pml4_is_dirty(&thread_current()->pml4, page->va)) {
-		file_write(file_page->file, page->frame->kva, page->file_inf->read_bytes);
-	}
 }
 
 /* Do the mmap */
 void *
-do_mmap (void *addr, size_t length, int writable, 
-			struct file *file, off_t offset) {
+do_mmap(void *addr, size_t length, int writable,
+				struct file *file, off_t offset)
+{
+
 	uint32_t read_bytes = length;
 	uint32_t zero_bytes = FISIZE - length;
-	
+
+	struct mmap_file mmap_file;
+	mmap_file.file = file;
+	list_init(&mmap_file.page_list);
+	list_push_back(&thread_current()->mmap_list, &mmap_file.mmap_elem);
+
 	while (read_bytes > 0 || zero_bytes > 0)
 	{
 		/* Do calculate how to fill this page.
@@ -89,8 +90,11 @@ do_mmap (void *addr, size_t length, int writable,
 		file_inf->ofs = offset;
 		file_inf->read_bytes = page_read_bytes;
 
-		if (!vm_alloc_page_with_initializer(VM_FILE, addr,	writable, file_lazy_load_segment, file_inf))
+		if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, file_lazy_load_segment, file_inf))
 			return NULL;
+
+		struct page *file_page = page_lookup(addr);
+		list_push_back(&mmap_file.page_list, &file_page->mmap_elem);
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -99,7 +103,6 @@ do_mmap (void *addr, size_t length, int writable,
 		offset += page_read_bytes;
 	}
 	return addr;
-
 }
 
 static bool
@@ -129,12 +132,21 @@ file_lazy_load_segment(struct page *page, void *aux)
 }
 
 /* Do the munmap */
-void
-do_munmap (void *addr) {
+void do_munmap(void *addr)
+{
 	struct page *page = spt_find_page(&thread_current()->spt, addr);
-	struct file_page *file_page UNUSED = &page->file;
 
-	if (page->frame && pml4_is_dirty(&thread_current()->pml4, page->va)) {
-		file_write(file_page->file, page->frame->kva, page->file_inf->read_bytes);
+	if (page->frame && pml4_is_dirty(&thread_current()->pml4, page->va))
+	{
+		file_write(page->file_inf->file, page->frame->kva, page->file_inf->read_bytes);
+	}
+	struct mmap_file *mmap_file = list_entry(&page->mmap_elem, struct mmap_file, mmap_elem);
+	struct list_elem *elem = list_begin(&mmap_file->page_list);
+
+	while (elem)
+	{
+		struct page *free_page = list_entry(elem, struct page, mmap_elem);
+		vm_dealloc_page(free_page);
+		elem = elem->next;
 	}
 }
