@@ -191,12 +191,12 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Your code goes here */
 	/* 페이지의 Present bit이 0이면 -> 가상 메모리 상에 존재하지 않는다.
 		 1이면 메모리에 존재 -> 메모리에 프레임을 올리고 프레임과 페이지를 매핑시켜준다. */
-	struct thread *t = thread_current();
 	if (not_present)
 	{
-		if (f->rsp - PGSIZE < addr && addr <= t->stack_bottom)
+		struct thread *t = thread_current();
+		if (f->rsp - 8 <= addr)
 		{
-			if (t->stack_bottom - PGSIZE < USER_STACK - (1 << 20))
+			if (t->stack_bottom - PGSIZE < USER_STACK - PGSIZE)
 				return false;
 			vm_stack_growth(addr);
 			return true;
