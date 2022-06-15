@@ -235,7 +235,6 @@ static bool
 vm_do_claim_page(struct page *page)
 {
 	struct frame *frame = vm_get_frame();
-
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;

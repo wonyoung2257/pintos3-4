@@ -450,11 +450,14 @@ mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 	struct file *file_obj = get_file_from_fd_table(fd);
 	if (!file_obj || !filesize(fd) || fd == 0 || fd == 1)
 		return NULL;
-	return do_mmap(addr, length, writable, file_obj, offset);
+
+	// printf("length: %d, offset: %d, filesize(fd): %d\n", length, offset, filesize(fd));
+	// return do_mmap(addr, length, writable, file_obj, offset);
+	return do_mmap(addr, filesize(fd), writable, file_obj, offset);
 }
 
 void munmap(void *addr)
 {
-	check_address(addr);
+	// check_address(addr);
 	do_munmap(addr);
 }

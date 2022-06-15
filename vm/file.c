@@ -64,7 +64,7 @@ file_backed_destroy(struct page *page)
 
 /* Do the mmap */
 void *
-do_mmap(void *addr, size_t length, int writable,
+do_mmap(void *addr_, size_t length, int writable,
 				struct file *file, off_t offset)
 {
 	uint32_t read_bytes = length;
@@ -74,7 +74,7 @@ do_mmap(void *addr, size_t length, int writable,
 	mmap_file.file = file;
 	list_init(&mmap_file.page_list);
 	list_push_back(&thread_current()->mmap_list, &mmap_file.mmap_elem);
-
+	void *addr = addr_;
 	while (read_bytes > 0 || zero_bytes > 0)
 	{
 		/* Do calculate how to fill this page.
@@ -88,25 +88,24 @@ do_mmap(void *addr, size_t length, int writable,
 		file_inf->file = file;
 		file_inf->ofs = offset;
 		file_inf->read_bytes = page_read_bytes;
-
 		if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, file_lazy_load_segment, file_inf))
 			return NULL;
 
 		struct page *file_page = page_lookup(addr);
 		list_push_back(&mmap_file.page_list, &file_page->mmap_elem);
-
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		addr += FISIZE;
 		offset += page_read_bytes;
 	}
-	return addr;
+	return addr_;
 }
 
 static bool
 file_lazy_load_segment(struct page *page, void *aux)
 {
+	// printf("=========file_lazy_load_segment========\n");
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
@@ -115,15 +114,22 @@ file_lazy_load_segment(struct page *page, void *aux)
 	off_t offset = ((struct file_information *)aux)->ofs;
 	size_t page_read_bytes = ((struct file_information *)aux)->read_bytes;
 	size_t page_zero_bytes = FISIZE - page_read_bytes;
+	// printf("file_lazy: offset: %d\n", offset);
 	file_seek(file, offset); // file의 오프셋을 offset으로 바꾼다. 이제 offset부터 읽기 시작한다.
 
 	/* 페이지에 매핑된 물리 메모리(frame, 커널 가상 주소)에 파일의 데이터를 읽어온다. */
 	/* 제대로 못 읽어오면 페이지를 FREE시키고 FALSE 리턴 */
-	if (file_read(file, page->frame->kva, page_read_bytes) != (int)page_read_bytes)
+
+	// printf("file_lazy: page->frame->kva %p, file: %p\n", page->frame->kva, file);
+	// printf("file_lazy: page_read_bytes: %d, page_zero_bytes: %d\n", page_read_bytes, page_zero_bytes);
+	off_t read_off = file_read(file, page->frame->kva, page_read_bytes);
+	if (read_off != (int)page_read_bytes)
 	{
+		// printf("file_lazy: read_off: %d\n", read_off);
 		palloc_free_page(page->frame->kva);
 		return false;
 	}
+	// printf("file_lazy: file_lazy_load_segment2222\n");
 	/* 만약 1페이지 못 되게 받아왔다면 남는 데이터를 0으로 초기화한다. */
 	memset(page->frame->kva + page_read_bytes, 0, page_zero_bytes);
 
