@@ -60,6 +60,11 @@ static void
 file_backed_destroy(struct page *page)
 {
 	struct file_page *file_page UNUSED = &page->file;
+	if (pml4_is_dirty(thread_current()->pml4, page->va))
+	{
+		file_write_at(page->file_inf->file, page->frame->kva, page->file_inf->read_bytes, page->file_inf->ofs);
+		pml4_set_dirty(thread_current()->pml4, page->va, false);
+	}
 }
 
 /* Do the mmap */
@@ -69,7 +74,7 @@ do_mmap(void *addr_, size_t length, int writable,
 {
 	file = file_reopen(file);
 	uint32_t read_bytes = file_length(file);
-	uint32_t zero_bytes = length - read_bytes;
+	uint32_t zero_bytes = (length - read_bytes);
 
 	// 추가 ///////
 	// off_t file_size = file_length(file);
@@ -140,7 +145,7 @@ file_lazy_load_segment(struct page *page, void *aux)
 	/* 만약 1페이지 못 되게 받아왔다면 남는 데이터를 0으로 초기화한다. */
 
 	memset(page->frame->kva + page_read_bytes, 0, page_zero_bytes);
-	pml4_set_dirty(thread_current()->pml4, page->va, 1);
+	// pml4_set_dirty(thread_current()->pml4, page->va, 1);
 
 	return true;
 }
