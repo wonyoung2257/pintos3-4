@@ -450,8 +450,7 @@ mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 	if (page)
 		return NULL;
 
-	struct file *file_obj = file_reopen(page->file_inf->file);
-	printf("file_reopen: %d\n", file_obj);
+	struct file *file_obj = get_file_from_fd_table(fd);
 	if (!file_obj || !filesize(fd) || fd == 0 || fd == 1)
 		return NULL;
 
