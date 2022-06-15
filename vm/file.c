@@ -96,7 +96,6 @@ do_mmap(void *addr_, size_t length, int writable,
 		file_inf->file = file;
 		file_inf->ofs = offset;
 		file_inf->read_bytes = page_read_bytes;
-		// printf("read_bytes: %d, zero_bytes: %d\n", read_bytes, zero_bytes);
 
 		if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, file_lazy_load_segment, file_inf))
 			return NULL;
@@ -131,8 +130,6 @@ file_lazy_load_segment(struct page *page, void *aux)
 	/* 페이지에 매핑된 물리 메모리(frame, 커널 가상 주소)에 파일의 데이터를 읽어온다. */
 	/* 제대로 못 읽어오면 페이지를 FREE시키고 FALSE 리턴 */
 
-	// printf("file_lazy: page->frame->kva %p, file: %p\n", page->frame->kva, file);
-	// printf("file_lazy: page_read_bytes: %d, page_zero_bytes: %d\n", page_read_bytes, page_zero_bytes);
 	off_t read_off = file_read(file, page->frame->kva, page_read_bytes);
 	if (read_off != (int)page_read_bytes)
 	{
@@ -140,9 +137,10 @@ file_lazy_load_segment(struct page *page, void *aux)
 		palloc_free_page(page->frame->kva);
 		return false;
 	}
-	// printf("file_lazy: file_lazy_load_segment2222\n");
 	/* 만약 1페이지 못 되게 받아왔다면 남는 데이터를 0으로 초기화한다. */
+
 	memset(page->frame->kva + page_read_bytes, 0, page_zero_bytes);
+	pml4_set_dirty(thread_current()->pml4, page->va, 1);
 
 	return true;
 }
@@ -152,17 +150,26 @@ void do_munmap(void *addr)
 {
 	struct page *page = spt_find_page(&thread_current()->spt, addr);
 
-	if (page->frame && pml4_is_dirty(&thread_current()->pml4, page->va))
+	if (pml4_is_dirty(thread_current()->pml4, page->va))
 	{
-		file_write(page->file_inf->file, page->frame->kva, page->file_inf->read_bytes);
+		file_write_at(page->file_inf->file, page->frame->kva, page->file_inf->read_bytes, page->file_inf->ofs);
+		pml4_set_dirty(thread_current()->pml4, page->va, false);
 	}
+
 	struct mmap_file *mmap_file = list_entry(&page->mmap_elem, struct mmap_file, mmap_elem);
 	struct list_elem *elem = list_begin(&mmap_file->page_list);
 
 	while (elem)
 	{
 		struct page *free_page = list_entry(elem, struct page, mmap_elem);
-		vm_dealloc_page(free_page);
+		if (pml4_is_dirty(thread_current()->pml4, free_page->va))
+		{
+			file_write_at(free_page->file_inf->file, free_page->frame->kva, free_page->file_inf->read_bytes, free_page->file_inf->ofs);
+			pml4_set_dirty(thread_current()->pml4, free_page->va, false);
+		}
+
+		// vm_dealloc_page(free_page);
 		elem = elem->next;
+		pml4_clear_page(thread_current()->pml4, free_page->va);
 	}
 }
