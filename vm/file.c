@@ -104,7 +104,6 @@ do_mmap(void *addr_, size_t length, int writable,
 
 		if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, file_lazy_load_segment, file_inf))
 			return NULL;
-
 		struct page *file_page = page_lookup(addr);
 		file_page->file_inf = file_inf;
 		list_push_back(&mmap_file.page_list, &file_page->mmap_elem);
@@ -114,13 +113,13 @@ do_mmap(void *addr_, size_t length, int writable,
 		addr += FISIZE;
 		offset += page_read_bytes;
 	}
+
 	return addr_;
 }
 
 static bool
 file_lazy_load_segment(struct page *page, void *aux)
 {
-	// printf("=========file_lazy_load_segment========\n");
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */

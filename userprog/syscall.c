@@ -468,7 +468,6 @@ mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 
 	if (!file_obj || !filesize(fd))
 		return NULL;
-
 	// printf("length: %d, filed_size: %d, offset: %d\n", length, filesize(fd), offset);
 	// return do_mmap(addr, length, writable, file_obj, offset);
 	// length 랑 filesiz랑 다르면 file을 남은 공간 만큼 채워준다.
