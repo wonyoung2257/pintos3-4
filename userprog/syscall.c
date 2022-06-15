@@ -14,7 +14,7 @@
 #include "kernel/stdio.h"
 #include "threads/palloc.h"
 /* ------------------------------- */
-// #include "include/vm/file.h"
+#include "include/vm/file.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -24,8 +24,8 @@ void syscall_handler(struct intr_frame *);
 /* ---------- Project 3 ---------- */
 struct page *check_address(void *uaddr);
 void check_valid_buffer(void *buffer, unsigned size, void *rsp, bool to_write);
-void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
-void munmap (void *addr);	
+void *mmap(void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap(void *addr);
 
 void halt(void);			 /* 구현 완료 */
 void exit(int status); /* 구현 완료 */
@@ -441,18 +441,20 @@ void close(int fd)
 /* ------------------------------- */
 
 void *
-mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
-	check_address(addr);
-	struct file *file_obj = get_file_from_fd_table(fd);
-
-	if (!file_obj || !filesize(fd) || fd == 0 || fd == 1 ) 
+mmap(void *addr, size_t length, int writable, int fd, off_t offset)
+{
+	if (addr == NULL || !is_user_vaddr(addr) || length == 0)
 		return NULL;
-
+	if (spt_find_page(&thread_current()->spt, addr))
+		return NULL;
+	struct file *file_obj = get_file_from_fd_table(fd);
+	if (!file_obj || !filesize(fd) || fd == 0 || fd == 1)
+		return NULL;
 	return do_mmap(addr, length, writable, file_obj, offset);
 }
 
-void
-munmap (void *addr) {
+void munmap(void *addr)
+{
 	check_address(addr);
 	do_munmap(addr);
 }

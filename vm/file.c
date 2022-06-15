@@ -67,7 +67,6 @@ void *
 do_mmap(void *addr, size_t length, int writable,
 				struct file *file, off_t offset)
 {
-
 	uint32_t read_bytes = length;
 	uint32_t zero_bytes = FISIZE - length;
 

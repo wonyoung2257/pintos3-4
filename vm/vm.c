@@ -203,7 +203,9 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 			return true;
 		}
 		if (vm_claim_page(addr))
+		{
 			return true;
+		}
 	}
 	return false;
 }
