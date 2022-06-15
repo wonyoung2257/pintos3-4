@@ -68,15 +68,22 @@ do_mmap(void *addr_, size_t length, int writable,
 				struct file *file, off_t offset)
 {
 	file = file_reopen(file);
-	uint32_t read_bytes = length;
-	uint32_t zero_bytes = FISIZE - length;
+	uint32_t read_bytes = file_length(file);
+	uint32_t zero_bytes = length - read_bytes;
+
+	// 추가 ///////
+	// off_t file_size = file_length(file);
+
+	// file_write(file, 0, length - file_size);
 
 	struct mmap_file mmap_file;
 	mmap_file.file = file;
 	list_init(&mmap_file.page_list);
 	list_push_back(&thread_current()->mmap_list, &mmap_file.mmap_elem);
 	void *addr = addr_;
-	while (read_bytes > 0 || zero_bytes > 0)
+
+	// while (read_bytes > 0 || zero_bytes > 0)
+	while (read_bytes > 0)
 	{
 		/* Do calculate how to fill this page.
 		 * We will read PAGE_READ_BYTES bytes from FILE
@@ -89,6 +96,7 @@ do_mmap(void *addr_, size_t length, int writable,
 		file_inf->file = file;
 		file_inf->ofs = offset;
 		file_inf->read_bytes = page_read_bytes;
+		// printf("read_bytes: %d, zero_bytes: %d\n", read_bytes, zero_bytes);
 
 		if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, file_lazy_load_segment, file_inf))
 			return NULL;
@@ -128,7 +136,7 @@ file_lazy_load_segment(struct page *page, void *aux)
 	off_t read_off = file_read(file, page->frame->kva, page_read_bytes);
 	if (read_off != (int)page_read_bytes)
 	{
-		printf("file_lazy: read_off: %d\n", read_off);
+		// printf("file_lazy: read_off: %d\n", read_off);
 		palloc_free_page(page->frame->kva);
 		return false;
 	}

@@ -361,6 +361,7 @@ int read(int fd, void *buffer, unsigned size)
 
 int write(int fd, const void *buffer, unsigned size)
 {
+
 	check_address(buffer);
 	lock_acquire(&filesys_lock);
 
@@ -445,19 +446,24 @@ mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 {
 	if (addr == NULL || !is_user_vaddr(addr) || length == 0)
 		return NULL;
+
+	if (addr != pg_round_down(addr))
+		return NULL;
 	struct page *page = spt_find_page(&thread_current()->spt, addr);
 
 	if (page)
 		return NULL;
 
-	struct file *file_obj = get_file_from_fd_table(fd);
-	if (!file_obj || !filesize(fd) || fd == 0 || fd == 1)
+	if (fd == 0 || fd == 1)
 		return NULL;
 
-	// printf("length: %d, offset: %d, filesize(fd): %d\n", length, offset, filesize(fd));
+	struct file *file_obj = get_file_from_fd_table(fd);
+	if (!file_obj || !filesize(fd))
+		return NULL;
+	// printf("length: %d, filed_size: %d, offset: %d\n", length, filesize(fd), offset);
 	// return do_mmap(addr, length, writable, file_obj, offset);
 	// length 랑 filesiz랑 다르면 file을 남은 공간 만큼 채워준다.
-	return do_mmap(addr, filesize(fd), writable, file_obj, offset);
+	return do_mmap(addr, length, writable, file_obj, offset);
 }
 
 void munmap(void *addr)
