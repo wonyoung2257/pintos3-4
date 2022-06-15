@@ -88,10 +88,12 @@ do_mmap(void *addr_, size_t length, int writable,
 		file_inf->file = file;
 		file_inf->ofs = offset;
 		file_inf->read_bytes = page_read_bytes;
+
 		if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, file_lazy_load_segment, file_inf))
 			return NULL;
 
 		struct page *file_page = page_lookup(addr);
+		file_page->file_inf = file_inf;
 		list_push_back(&mmap_file.page_list, &file_page->mmap_elem);
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -125,7 +127,7 @@ file_lazy_load_segment(struct page *page, void *aux)
 	off_t read_off = file_read(file, page->frame->kva, page_read_bytes);
 	if (read_off != (int)page_read_bytes)
 	{
-		// printf("file_lazy: read_off: %d\n", read_off);
+		printf("file_lazy: read_off: %d\n", read_off);
 		palloc_free_page(page->frame->kva);
 		return false;
 	}

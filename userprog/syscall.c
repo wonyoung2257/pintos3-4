@@ -445,14 +445,19 @@ mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 {
 	if (addr == NULL || !is_user_vaddr(addr) || length == 0)
 		return NULL;
-	if (spt_find_page(&thread_current()->spt, addr))
+	struct page *page = spt_find_page(&thread_current()->spt, addr);
+
+	if (page)
 		return NULL;
-	struct file *file_obj = get_file_from_fd_table(fd);
+
+	struct file *file_obj = file_reopen(page->file_inf->file);
+	printf("file_reopen: %d\n", file_obj);
 	if (!file_obj || !filesize(fd) || fd == 0 || fd == 1)
 		return NULL;
 
 	// printf("length: %d, offset: %d, filesize(fd): %d\n", length, offset, filesize(fd));
 	// return do_mmap(addr, length, writable, file_obj, offset);
+	// length 랑 filesiz랑 다르면 file을 남은 공간 만큼 채워준다.
 	return do_mmap(addr, filesize(fd), writable, file_obj, offset);
 }
 

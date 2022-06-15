@@ -7,21 +7,24 @@
 #include "tests/lib.h"
 #include "tests/main.h"
 
-#define ACTUAL ((void *) 0x10000000)
+#define ACTUAL ((void *)0x10000000)
 
-void
-test_main (void)
+void test_main(void)
 {
   int handle;
   void *map;
+  CHECK((handle = open("sample.txt")) > 1, "open \"sample.txt\"");
+  CHECK((map = mmap(ACTUAL, 4096, 0, handle, 0)) != MAP_FAILED, "mmap \"sample.txt\"");
 
-  CHECK ((handle = open ("sample.txt")) > 1, "open \"sample.txt\"");
-  CHECK ((map = mmap(ACTUAL, 4096, 0, handle, 0)) != MAP_FAILED, "mmap \"sample.txt\"");
+  // msg("memcmp: %d\n", memcmp(ACTUAL, sample, strlen(sample)));
+  msg("1111\n");
+  close(handle);
+  msg("222\n");
+  // msg("memcmp: %d\n", memcmp(ACTUAL, sample, strlen(sample)));
+  if (memcmp(ACTUAL, sample, strlen(sample)))
+  {
+    fail("read of mmap'd file reported bad data");
+  }
 
-  close (handle);
-
-  if (memcmp (ACTUAL, sample, strlen (sample)))
-    fail ("read of mmap'd file reported bad data");
-
-  munmap (map);
+  munmap(map);
 }
