@@ -46,6 +46,24 @@ static bool
 file_backed_swap_in(struct page *page, void *kva)
 {
 	struct file_page *file_page UNUSED = &page->file;
+
+	struct file *file = ((struct file_information *)page->file_inf)->file;
+	off_t offset = ((struct file_information *)page->file_inf)->ofs;
+	size_t page_read_bytes = ((struct file_information *)page->file_inf)->read_bytes;
+	size_t page_zero_bytes = FISIZE - page_read_bytes;
+
+	file_seek(file, offset); // file의 오프셋을 offset으로 바꾼다. 이제 offset부터 읽기 시작한다.
+
+	off_t read_off = file_read(file, page->frame->kva, page_read_bytes);
+	if (read_off != (int)page_read_bytes)
+	{
+		palloc_free_page(page->frame->kva);
+		return false;
+	}
+
+	memset(page->frame->kva + page_read_bytes, 0, page_zero_bytes);
+
+	return true;
 }
 
 /* Swap out the page by writeback contents to the file. */
@@ -53,6 +71,18 @@ static bool
 file_backed_swap_out(struct page *page)
 {
 	struct file_page *file_page UNUSED = &page->file;
+
+	if (pml4_is_dirty(thread_current()->pml4, page->va))
+	{
+		off_t write_bytes;
+		write_bytes = file_write_at(page->file_inf->file, page->frame->kva, page->file_inf->read_bytes, page->file_inf->ofs);
+
+		// if (write_bytes != page->file_inf->read_bytes || write_bytes == 0)
+		// 	return false;
+		pml4_set_dirty(thread_current()->pml4, page->va, false);
+	}
+
+	return true;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */

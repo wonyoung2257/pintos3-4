@@ -12,6 +12,7 @@
  * intialize codes. */
 
 struct list frame_table;
+struct list_elem *clock_elem;
 
 void vm_init(void)
 {
@@ -119,6 +120,23 @@ vm_get_victim(void)
 {
 	struct frame *victim = NULL;
 	/* TODO: The policy for eviction is up to you. */
+	while (victim == NULL)
+	{
+		struct page *page = list_entry(clock_elem, struct page, frame_elem);
+		if (pml4_is_accessed(thread_current()->pml4, page->va))
+		{
+			pml4_set_accessed(thread_current()->pml4, page->va, 0);
+		}
+		else
+		{
+			victim = page->frame;
+		}
+		clock_elem = list_next(clock_elem);
+		if (clock_elem == list_tail(&frame_table))
+		{
+			clock_elem = list_begin(&frame_table);
+		}
+	}
 
 	return victim;
 }
@@ -130,8 +148,13 @@ vm_evict_frame(void)
 {
 	struct frame *victim UNUSED = vm_get_victim();
 	/* TODO: swap out the victim and return the evicted frame. */
+	if (!swap_out(victim->page))
+	{
+		return NULL;
+	}
+	palloc_free_page(victim->kva);
 
-	return NULL;
+	return victim;
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
@@ -147,11 +170,16 @@ vm_get_frame(void)
 	/* TODO: Fill this function. */
 	if (frame->kva == NULL)
 	{
+		if (clock_elem == NULL)
+			clock_elem = list_begin(&frame_table);
+
+		frame = vm_evict_frame();
+
+		frame->kva = palloc_get_page(PAL_USER);
 		frame->page = NULL;
 		return frame; // eviction된 kva에 매핑
 	}
 	frame->page = NULL;
-	// list_push_back (&frame_table, &frame->frame_elem);
 
 	ASSERT(frame != NULL);
 	ASSERT(frame->page == NULL);
@@ -238,6 +266,7 @@ static bool
 vm_do_claim_page(struct page *page)
 {
 	struct frame *frame = vm_get_frame();
+
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
@@ -246,6 +275,9 @@ vm_do_claim_page(struct page *page)
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	if (!(pml4_get_page(t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, page->writable)))
 		return false;
+
+	// LRU LIST에 PAGE 추가
+	list_push_back(&frame_table, &page->frame_elem);
 
 	return swap_in(page, frame->kva);
 }

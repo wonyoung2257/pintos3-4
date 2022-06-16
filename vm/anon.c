@@ -3,8 +3,6 @@
 #include "vm/vm.h"
 #include "devices/disk.h"
 
-struct list anon_list;
-
 /* DO NOT MODIFY BELOW LINE */
 static struct disk *swap_disk;
 static bool anon_swap_in(struct page *page, void *kva);
@@ -24,7 +22,7 @@ void vm_anon_init(void)
 {
 	/* TODO: Set up the swap_disk. */
 	swap_disk = disk_get(1, 1);
-	list_init(&anon_list);
+	printf("swap_disk: %d\n", disk_size(swap_disk));
 }
 
 /* Initialize the file mapping */
@@ -51,6 +49,11 @@ static bool
 anon_swap_in(struct page *page, void *kva)
 {
 	struct anon_page *anon_page = &page->anon;
+	char *buf = malloc(page->file_inf->read_bytes);
+	disk_read(swap_disk, anon_page->swap_index, buf);
+	memcpy(kva, buf, sizeof(buf));
+
+	return true;
 }
 
 /* Swap out the page by writing contents to the swap disk. */
@@ -58,6 +61,8 @@ static bool
 anon_swap_out(struct page *page)
 {
 	struct anon_page *anon_page = &page->anon;
+	disk_write(swap_disk, anon_page->swap_index, page->frame->kva);
+	return true;
 }
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
