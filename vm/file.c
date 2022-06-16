@@ -45,7 +45,6 @@ bool file_backed_initializer(struct page *page, enum vm_type type, void *kva)
 static bool
 file_backed_swap_in(struct page *page, void *kva)
 {
-	printf("file_swap_in\n");
 	struct file_page *file_page UNUSED = &page->file;
 
 	struct file *file = ((struct file_information *)page->file_inf)->file;
@@ -71,19 +70,17 @@ file_backed_swap_in(struct page *page, void *kva)
 static bool
 file_backed_swap_out(struct page *page)
 {
-	printf("file_swap_out\n");
 	struct file_page *file_page UNUSED = &page->file;
 
 	if (pml4_is_dirty(thread_current()->pml4, page->va))
 	{
-		off_t write_bytes;
-		write_bytes = file_write_at(page->file_inf->file, page->frame->kva, page->file_inf->read_bytes, page->file_inf->ofs);
+		file_write_at(page->file_inf->file, page->va, page->file_inf->read_bytes, page->file_inf->ofs);
 
 		// if (write_bytes != page->file_inf->read_bytes || write_bytes == 0)
 		// 	return false;
 		pml4_set_dirty(thread_current()->pml4, page->va, false);
 	}
-
+	pml4_clear_page(thread_current()->pml4, page->va);
 	return true;
 }
 

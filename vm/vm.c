@@ -122,14 +122,14 @@ vm_get_victim(void)
 	/* TODO: The policy for eviction is up to you. */
 	while (victim == NULL)
 	{
-		struct page *page = list_entry(clock_elem, struct page, frame_elem);
-		if (pml4_is_accessed(thread_current()->pml4, page->va))
+		struct frame *frame = list_entry(clock_elem, struct frame, frame_elem);
+		if (pml4_is_accessed(thread_current()->pml4, frame->page->va))
 		{
-			pml4_set_accessed(thread_current()->pml4, page->va, 0);
+			pml4_set_accessed(thread_current()->pml4, frame->page->va, 0);
 		}
 		else
 		{
-			victim = page->frame;
+			victim = frame;
 		}
 		clock_elem = list_next(clock_elem);
 		if (clock_elem == list_tail(&frame_table))
@@ -137,6 +137,8 @@ vm_get_victim(void)
 			clock_elem = list_begin(&frame_table);
 		}
 	}
+
+	// list_remove(list_prev(clock_elem));
 
 	return victim;
 }
@@ -171,16 +173,16 @@ vm_get_frame(void)
 	/* TODO: Fill this function. */
 	if (frame->kva == NULL)
 	{
-		printf("get_frame\n");
 		if (clock_elem == NULL)
 			clock_elem = list_begin(&frame_table);
 
 		frame = vm_evict_frame();
-		printf("frame : %p\n", frame);
 		frame->kva = palloc_get_page(PAL_USER);
 		frame->page = NULL;
 		return frame; // eviction된 kva에 매핑
 	}
+	// LRU LIST에 PAGE 추가
+	list_push_back(&frame_table, &frame->frame_elem);
 	frame->page = NULL;
 
 	ASSERT(frame != NULL);
@@ -256,6 +258,7 @@ bool vm_claim_page(void *va UNUSED)
 {
 	struct page *page = page_lookup(va);
 	/* TODO: Fill this function */
+
 	if (page == NULL)
 	{
 		return false;
@@ -278,8 +281,8 @@ vm_do_claim_page(struct page *page)
 	if (!(pml4_get_page(t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, page->writable)))
 		return false;
 
-	// LRU LIST에 PAGE 추가
-	list_push_back(&frame_table, &page->frame_elem);
+	// // LRU LIST에 PAGE 추가
+	// list_push_back(&frame_table, &page->frame_elem);
 
 	return swap_in(page, frame->kva);
 }

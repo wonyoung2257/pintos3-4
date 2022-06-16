@@ -67,8 +67,6 @@ struct page
 	/* Memory Mapped File 에서 다룰 예정 */
 	struct list_elem mmap_elem; /* mmap 리스트 element */
 
-	struct list_elem frame_elem;
-
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
 	union

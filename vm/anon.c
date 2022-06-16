@@ -27,7 +27,7 @@ void vm_anon_init(void)
 {
 	/* TODO: Set up the swap_disk. */
 	swap_disk = disk_get(1, 1);
-	swap_cnt = (int)disk_size(swap_disk) / DISK_SECTOR_SIZE;
+	swap_cnt = (int)(disk_size(swap_disk) / SECTOR_PAGE_SIZE);
 
 	swap_table = bitmap_create(swap_cnt);
 }
@@ -55,17 +55,29 @@ bool anon_initializer(struct page *page, enum vm_type type, void *kva)
 static bool
 anon_swap_in(struct page *page, void *kva)
 {
-	printf("anon_swap_in\n");
 	struct anon_page *anon_page = &page->anon;
-	int start_index = anon_page->swap_index;
-	for (int i = 0; i < SECTOR_PAGE_SIZE; i++)
-	{
-		disk_read(swap_disk, start_index + (DISK_SECTOR_SIZE * i), page->frame->kva + (DISK_SECTOR_SIZE * i));
-		bitmap_set(swap_table, start_index + i, false);
-	}
-	pml4_set_page(thread_current()->pml4, page->va, page->frame->kva, page->writable);
-	anon_page->swap_index = -1;
 
+	int swap_sec = anon_page->swap_index;
+	int swap_slot_idx = swap_sec / 8;
+
+	if (bitmap_test(swap_table, swap_slot_idx) == 0)
+		// return false;
+		PANIC("(anon swap in) Frame not stored in the swap slot!\n");
+
+	page->frame->kva = kva;
+
+	bitmap_set(swap_table, swap_slot_idx, 0);
+
+	// ASSERT(is_writable(kva) != false);
+
+	// disk_read is done per sector; repeat until one page is read
+	for (int sec = 0; sec < 8; sec++)
+		disk_read(swap_disk, swap_sec + sec, page->frame->kva + DISK_SECTOR_SIZE * sec);
+
+	// restore vaddr connection
+	pml4_set_page(thread_current()->pml4, page->va, kva, true); // writable true, as we are writing into the frame
+
+	anon_page->swap_index = -1;
 	return true;
 }
 
@@ -73,20 +85,29 @@ anon_swap_in(struct page *page, void *kva)
 static bool
 anon_swap_out(struct page *page)
 {
-	printf("anon_swap_out\n");
 	struct anon_page *anon_page = &page->anon;
-	int bit_index = bitmap_scan_and_flip(swap_table, 0, 1, 0);
-	if (bit_index == BITMAP_ERROR)
-		return false;
-	anon_page->swap_index = bit_index;
 
-	for (int i = 0; i < SECTOR_PAGE_SIZE; i++)
-	{
-		disk_write(swap_disk, bit_index + (DISK_SECTOR_SIZE * i), page->frame->kva + (DISK_SECTOR_SIZE * i));
-		// bitmap_set(swap_table, bit_index + i, true);
-	}
-	// bitmap 바꾸기
+	// Find free slot in swap disk
+	// Need at least PGSIZE to store frame into the slot
+	// size_t free_idx = bitmap_scan(swap_table, 0, SECTORS_IN_PAGE, 0);
+	size_t free_idx = bitmap_scan_and_flip(swap_table, 0, 1, 0);
+
+	if (free_idx == BITMAP_ERROR)
+		PANIC("(anon swap-out) No more free swap slots!\n");
+
+	int swap_sec = free_idx * 8;
+
+	// disk_write is done per sector; repeat until one page is written
+	for (int sec = 0; sec < 8; sec++)
+		disk_write(swap_disk, swap_sec + sec, page->frame->kva + DISK_SECTOR_SIZE * sec);
+
+	// access to page now generates fault
 	pml4_clear_page(thread_current()->pml4, page->va);
+
+	anon_page->swap_index = swap_sec;
+
+	page->frame->page = NULL;
+	page->frame = NULL;
 
 	return true;
 }
