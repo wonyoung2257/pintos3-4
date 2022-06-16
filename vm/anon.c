@@ -2,12 +2,17 @@
 
 #include "vm/vm.h"
 #include "devices/disk.h"
+#include "lib/kernel/bitmap.h"
 
 /* DO NOT MODIFY BELOW LINE */
 static struct disk *swap_disk;
 static bool anon_swap_in(struct page *page, void *kva);
 static bool anon_swap_out(struct page *page);
 static void anon_destroy(struct page *page);
+
+int swap_cnt;
+struct bitmap *swap_table;
+#define SECTOR_PAGE_SIZE 8
 
 /* DO NOT MODIFY this struct */
 static const struct page_operations anon_ops = {
@@ -22,7 +27,9 @@ void vm_anon_init(void)
 {
 	/* TODO: Set up the swap_disk. */
 	swap_disk = disk_get(1, 1);
-	printf("swap_disk: %d\n", disk_size(swap_disk));
+	swap_cnt = (int)disk_size(swap_disk) / DISK_SECTOR_SIZE;
+
+	swap_table = bitmap_create(swap_cnt);
 }
 
 /* Initialize the file mapping */
@@ -48,10 +55,16 @@ bool anon_initializer(struct page *page, enum vm_type type, void *kva)
 static bool
 anon_swap_in(struct page *page, void *kva)
 {
+	printf("anon_swap_in\n");
 	struct anon_page *anon_page = &page->anon;
-	char *buf = malloc(page->file_inf->read_bytes);
-	disk_read(swap_disk, anon_page->swap_index, buf);
-	memcpy(kva, buf, sizeof(buf));
+	int start_index = anon_page->swap_index;
+	for (int i = 0; i < SECTOR_PAGE_SIZE; i++)
+	{
+		disk_read(swap_disk, start_index + (DISK_SECTOR_SIZE * i), page->frame->kva + (DISK_SECTOR_SIZE * i));
+		bitmap_set(swap_table, start_index + i, false);
+	}
+	pml4_set_page(thread_current()->pml4, page->va, page->frame->kva, page->writable);
+	anon_page->swap_index = -1;
 
 	return true;
 }
@@ -60,8 +73,21 @@ anon_swap_in(struct page *page, void *kva)
 static bool
 anon_swap_out(struct page *page)
 {
+	printf("anon_swap_out\n");
 	struct anon_page *anon_page = &page->anon;
-	disk_write(swap_disk, anon_page->swap_index, page->frame->kva);
+	int bit_index = bitmap_scan_and_flip(swap_table, 0, 1, 0);
+	if (bit_index == BITMAP_ERROR)
+		return false;
+	anon_page->swap_index = bit_index;
+
+	for (int i = 0; i < SECTOR_PAGE_SIZE; i++)
+	{
+		disk_write(swap_disk, bit_index + (DISK_SECTOR_SIZE * i), page->frame->kva + (DISK_SECTOR_SIZE * i));
+		// bitmap_set(swap_table, bit_index + i, true);
+	}
+	// bitmap 바꾸기
+	pml4_clear_page(thread_current()->pml4, page->va);
+
 	return true;
 }
 
@@ -70,7 +96,4 @@ static void
 anon_destroy(struct page *page)
 {
 	struct anon_page *anon_page = &page->anon;
-	// palloc_free_page(page);
-	// page->frame = NULL;
-	// frame 날려야하지 않나????
 }

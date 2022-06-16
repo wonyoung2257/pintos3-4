@@ -148,12 +148,13 @@ vm_evict_frame(void)
 {
 	struct frame *victim UNUSED = vm_get_victim();
 	/* TODO: swap out the victim and return the evicted frame. */
-	if (!swap_out(victim->page))
-	{
-		return NULL;
-	}
-	palloc_free_page(victim->kva);
 
+	bool swap_bool = swap_out(victim->page);
+	// if (!)
+	// {
+	// 	return NULL;
+	// }
+	palloc_free_page(victim->kva);
 	return victim;
 }
 
@@ -170,11 +171,12 @@ vm_get_frame(void)
 	/* TODO: Fill this function. */
 	if (frame->kva == NULL)
 	{
+		printf("get_frame\n");
 		if (clock_elem == NULL)
 			clock_elem = list_begin(&frame_table);
 
 		frame = vm_evict_frame();
-
+		printf("frame : %p\n", frame);
 		frame->kva = palloc_get_page(PAL_USER);
 		frame->page = NULL;
 		return frame; // eviction된 kva에 매핑
