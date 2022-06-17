@@ -59,7 +59,7 @@ anon_swap_in(struct page *page, void *kva)
 
 	int swap_sec = anon_page->swap_index;
 	int swap_slot_idx = swap_sec / 8;
-
+	// printf("swap_sec: %d, swap_slot_idx: %d\n", swap_sec, swap_slot_idx);
 	if (bitmap_test(swap_table, swap_slot_idx) == 0)
 		// return false;
 		PANIC("(anon swap in) Frame not stored in the swap slot!\n");
@@ -85,6 +85,7 @@ anon_swap_in(struct page *page, void *kva)
 static bool
 anon_swap_out(struct page *page)
 {
+	// printf("swap_out: %p\n", page->va);
 	struct anon_page *anon_page = &page->anon;
 
 	// Find free slot in swap disk

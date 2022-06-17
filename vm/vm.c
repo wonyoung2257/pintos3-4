@@ -131,14 +131,16 @@ vm_get_victim(void)
 		{
 			victim = frame;
 		}
+
 		clock_elem = list_next(clock_elem);
-		if (clock_elem == list_tail(&frame_table))
+
+		if (clock_elem != NULL && clock_elem->prev != NULL && clock_elem->next == NULL)
 		{
 			clock_elem = list_begin(&frame_table);
 		}
 	}
 
-	// list_remove(list_prev(clock_elem));
+	list_remove(list_prev(clock_elem));
 
 	return victim;
 }
@@ -182,7 +184,10 @@ vm_get_frame(void)
 		return frame; // eviction된 kva에 매핑
 	}
 	// LRU LIST에 PAGE 추가
-	list_push_back(&frame_table, &frame->frame_elem);
+	// list_push_back(&frame_table, &frame->frame_elem);
+	// if (clock_elem == NULL)
+	// 	clock_elem = list_begin(&frame_table);
+
 	frame->page = NULL;
 
 	ASSERT(frame != NULL);
@@ -240,7 +245,6 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 			return true;
 		}
 	}
-
 	exit(-1);
 	return false;
 }
@@ -282,7 +286,7 @@ vm_do_claim_page(struct page *page)
 		return false;
 
 	// // LRU LIST에 PAGE 추가
-	// list_push_back(&frame_table, &page->frame_elem);
+	list_push_back(&frame_table, &frame->frame_elem);
 
 	return swap_in(page, frame->kva);
 }
@@ -305,18 +309,25 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	while (hash_next(&parnet_hast_iter))
 	{
 		struct page *page = hash_entry(hash_cur(&parnet_hast_iter), struct page, hash_elem);
+		enum vm_type type = page_get_type(page);
 		// 수상 : 일단 anon만 복사
-		if (!vm_alloc_page_with_initializer(VM_ANON, page->va, page->writable, NULL, NULL))
+
+		if (page->operations->type == VM_UNINIT)
 		{
-			return false;
+			if (!vm_alloc_page_with_initializer(type, page->va, page->writable, page->uninit.init, page->uninit.aux))
+				return false;
 		}
-		struct page *child_page = spt_find_page(dst, page->va);
-		if (!vm_claim_page(page->va))
+		else
 		{
-			return false;
+			if (!vm_alloc_page(type, page->va, page->writable))
+				return false;
+			if (!vm_claim_page(page->va))
+				return false;
 		}
-		if (page->frame != NULL)
+
+		if (page->operations->type != VM_UNINIT)
 		{
+			struct page *child_page = spt_find_page(dst, page->va);
 			memcpy(child_page->frame->kva, page->frame->kva, PGSIZE);
 		}
 	}

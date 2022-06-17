@@ -202,6 +202,7 @@ void do_munmap(void *addr)
 		}
 
 		// vm_dealloc_page(free_page);
+		// spt_remove_page(&thread_current()->spt, free_page);
 		elem = elem->next;
 		pml4_clear_page(thread_current()->pml4, free_page->va);
 	}
